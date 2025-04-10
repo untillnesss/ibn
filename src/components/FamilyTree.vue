@@ -42,9 +42,8 @@ onUnmounted(() => {
 })
 
 function myTree(domEl, x) {
-  console.log(FamilyTree.templates.john);
-  console.log(FamilyTree.templates.john_male);
-
+  console.log(FamilyTree.templates.john)
+  console.log(FamilyTree.templates.john_male)
 
   const field0Template =
     '<text data-width="230" style="font-size: 16px;font-weight:bold;" fill="#aeaeae" x="60" y="145" text-anchor="middle">{val}</text>'
@@ -146,6 +145,7 @@ function myTree(domEl, x) {
 
   familyTree = new FamilyTree(domEl, {
     nodes: x,
+    sticky: false,
     mouseScrool: FamilyTree.none,
     scaleInitial: getOptions().scaleInitial,
     mode: 'dark',
@@ -158,7 +158,7 @@ function myTree(domEl, x) {
     levelSeparation: 100,
     siblingSeparation: 80,
     minPartnerSeparation: 50,
-    orderBy: "anak",
+    orderBy: 'anak',
     miniMap: true,
     toolbar: {
       fullScreen: true,
@@ -221,7 +221,7 @@ function myTree(domEl, x) {
         '" y="' +
         args.p.ya +
         '"/>'
-    if (args.cnode.isPartner && args.node.partnerSeparation == 30)
+    if (args.cnode.isPartner && args.node.partnerSeparation == 50)
       args.html +=
         '<use data-ctrl-ec-id="' +
         args.node.id +
@@ -260,6 +260,16 @@ function myTree(domEl, x) {
         day: 'numeric',
       })
     }
+  })
+
+  familyTree.on('expcollclick', function (sender, isCollapsing, nodeId) {
+    var node = familyTree.getNode(nodeId)
+    if (isCollapsing) {
+      familyTree.expandCollapse(nodeId, [], node.ftChildrenIds)
+    } else {
+      familyTree.expandCollapse(nodeId, node.ftChildrenIds, [])
+    }
+    return false
   })
 
   familyTree.onUpdateNode(async (args) => {
@@ -310,17 +320,14 @@ async function addDocWithIdInData(data) {
 }
 
 async function updateByField(id, data) {
-  const q = query(
-    collection(db, tableName),
-    where('id', '==', id)
-  )
+  const q = query(collection(db, tableName), where('id', '==', id))
 
   const querySnapshot = await getDocs(q)
 
   const updatePromises = querySnapshot.docs.map((document) =>
     updateDoc(doc(db, tableName, document.id), {
-      ...data
-    })
+      ...data,
+    }),
   )
 
   await Promise.all(updatePromises)
