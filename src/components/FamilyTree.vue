@@ -1,82 +1,43 @@
 <script setup>
-import { ref, onMounted, useTemplateRef } from 'vue'
+import { ref, onMounted, useTemplateRef, onUnmounted } from 'vue'
 import FamilyTree from '@balkangraph/familytree.js'
+import {
+  collection,
+  onSnapshot,
+  setDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
+  query,
+  where,
+  getDocs,
+} from 'firebase/firestore'
+import { db } from '@/main'
+
+const tableName = 'families'
 
 const tree = useTemplateRef('tree')
-const nodes = ref([
-  {
-    id: 1,
-    pids: [3],
-    gender: 'male',
-    photo: 'https://cdn.balkan.app/shared/m60/2.jpg',
-    name: 'Zeph Daniels yang sangat panjang sekali',
-    born: '1954-09-29',
-  },
-  {
-    id: 2,
-    pids: [3],
-    gender: 'male',
-    photo: 'https://cdn.balkan.app/shared/m60/1.jpg',
-    name: 'Zeph Daniels yang sangat panjang sekali',
-    born: '1952-10-10',
-  },
-  {
-    id: 3,
-    pids: [1, 2],
-    gender: 'female',
-    photo: 'https://cdn.balkan.app/shared/w60/1.jpg',
-    name: 'Laura Shepherd',
-    born: '1943-01-13',
-    email: 'laura.shepherd@gmail.com',
-    phone: '+44 845 5752 547',
-    city: 'Moscow',
-    country: 'ru',
-  },
-  {
-    id: 4,
-    pids: [5],
-    photo: 'https://cdn.balkan.app/shared/m60/3.jpg',
-    name: 'Rowan Annable',
-  },
-  {
-    id: 5,
-    pids: [4],
-    gender: 'female',
-    photo: 'https://cdn.balkan.app/shared/w60/3.jpg',
-    name: 'Lois Sowle',
-  },
-  {
-    id: 6,
-    mid: 2,
-    fid: 3,
-    pids: [7],
-    gender: 'female',
-    photo: 'https://cdn.balkan.app/shared/w30/1.jpg',
-    name: 'Tyler Heath',
-    born: '1975-11-12',
-  },
-  {
-    id: 7,
-    pids: [6],
-    mid: 5,
-    fid: 4,
-    gender: 'male',
-    photo: 'https://cdn.balkan.app/shared/m30/3.jpg',
-    name: 'Samson Stokes',
-    born: '1986-10-01',
-  },
-  {
-    id: 8,
-    mid: 7,
-    fid: 6,
-    gender: 'female',
-    photo: 'https://cdn.balkan.app/shared/w10/3.jpg',
-    name: 'Celeste Castillo',
-    born: '2021-02-01',
-  },
-])
+const familyTreeNodes = ref([])
 
-let family
+let familyTree, unsubscribe
+
+onMounted(() => {
+  const familiesRef = collection(db, tableName)
+
+  unsubscribe = onSnapshot(familiesRef, (snapshot) => {
+    familyTreeNodes.value = snapshot.docs.map((doc) => {
+      return doc.data()
+    })
+
+    myTree(tree.value, familyTreeNodes.value)
+  })
+
+  myTree(tree.value, familyTreeNodes.value)
+})
+
+onUnmounted(() => {
+  if (unsubscribe) unsubscribe()
+})
 
 function myTree(domEl, x) {
   FamilyTree.templates.sriniz = Object.assign({}, FamilyTree.templates.base)
@@ -166,7 +127,7 @@ function myTree(domEl, x) {
     '<circle fill="red" cx="120" cy="120" r="30" />' +
     '</g></g>'
 
-  family = new FamilyTree(domEl, {
+  familyTree = new FamilyTree(domEl, {
     nodes: x,
     mouseScrool: FamilyTree.none,
     scaleInitial: getOptions().scaleInitial,
@@ -226,7 +187,7 @@ function myTree(domEl, x) {
     },
   })
 
-  family.on('render-link', function (sender, args) {
+  familyTree.on('render-link', function (sender, args) {
     if (args.cnode.ppid != undefined)
       args.html +=
         '<use data-ctrl-ec-id="' +
@@ -247,7 +208,7 @@ function myTree(domEl, x) {
         '"/>'
   })
 
-  family.on('field', function (sender, args) {
+  familyTree.on('field', function (sender, args) {
     if (args.name == 'born') {
       let date = new Date(args.value)
       args.value = date.toLocaleDateString('id-ID', {
@@ -268,6 +229,22 @@ function myTree(domEl, x) {
       })
     }
   })
+
+  familyTree.onUpdateNode(async (args) => {
+    console.log(args)
+
+    args.addNodesData.forEach(async (node) => {
+      await addDocWithIdInData(node)
+    })
+
+    args.updateNodesData.forEach(async (node) => {
+      await updateDocument(node.doc_id, node)
+    })
+
+    if (args.removeNodeId != null) {
+      await deleteDocsByField(args.removeNodeId)
+    }
+  })
 }
 
 function getOptions() {
@@ -282,9 +259,52 @@ function getOptions() {
   return { enableSearch, scaleInitial }
 }
 
-onMounted(() => {
-  myTree(tree.value, nodes.value)
-})
+async function addDocWithIdInData(data) {
+  // Step 1: Create a doc reference with a new ID
+  const docRef = doc(collection(db, tableName)) // auto-generates an ID
+  const id = docRef.id
+
+  // Step 2: Prepare your data with the ID included
+  const storedData = {
+    doc_id: id, // include the generated ID in the data
+    ...data,
+  }
+
+  // Step 3: Set the document with the ID
+  await setDoc(docRef, storedData)
+
+  console.log('Document created with ID and stored in data:', id)
+  return id
+}
+async function updateDocument(docId, updatedData) {
+  const docRef = doc(db, tableName, docId)
+
+  try {
+    await updateDoc(docRef, {
+      ...updatedData,
+    })
+
+    console.log('Document updated successfully')
+  } catch (error) {
+    console.error('Error updating document:', error)
+  }
+}
+
+async function deleteDocsByField(id) {
+  const q = query(collection(db, tableName), where('id', '==', id))
+
+  try {
+    const querySnapshot = await getDocs(q)
+    const deletePromises = querySnapshot.docs.map((document) =>
+      deleteDoc(doc(db, tableName, document.id)),
+    )
+
+    await Promise.all(deletePromises)
+    console.log('Matching documents deleted')
+  } catch (error) {
+    console.error('Error deleting documents:', error)
+  }
+}
 </script>
 
 <template>
