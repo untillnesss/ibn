@@ -30,6 +30,8 @@ onMounted(() => {
     })
 
     myTree(tree.value, familyTreeNodes.value)
+
+    if (unsubscribe) unsubscribe()
   })
 
   myTree(tree.value, familyTreeNodes.value)
@@ -133,6 +135,7 @@ function myTree(domEl, x) {
     scaleInitial: getOptions().scaleInitial,
     mode: 'dark',
     template: 'sriniz',
+    roots: ['_ui8p'],
     nodeMenu: {
       edit: { text: 'Ubah' },
       details: { text: 'Lihat Selengkapnya' },
