@@ -251,7 +251,7 @@ function myTree(domEl, x) {
     })
 
     args.updateNodesData.forEach(async (node) => {
-      await updateDocument(node.doc_id, node)
+      await updateByField(node.id, node)
     })
 
     if (args.removeNodeId != null) {
@@ -289,18 +289,24 @@ async function addDocWithIdInData(data) {
   console.log('Document created with ID and stored in data:', id)
   return id
 }
-async function updateDocument(docId, updatedData) {
-  const docRef = doc(db, tableName, docId)
 
-  try {
-    await updateDoc(docRef, {
-      ...updatedData,
+async function updateByField(id, data) {
+  const q = query(
+    collection(db, tableName),
+    where('id', '==', id)
+  )
+
+  const querySnapshot = await getDocs(q)
+
+  const updatePromises = querySnapshot.docs.map((document) =>
+    updateDoc(doc(db, tableName, document.id), {
+      ...data
     })
+  )
 
-    console.log('Document updated successfully')
-  } catch (error) {
-    console.error('Error updating document:', error)
-  }
+  await Promise.all(updatePromises)
+
+  console.log('Document(s) updated based on field match')
 }
 
 async function deleteDocsByField(id) {
