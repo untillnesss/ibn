@@ -142,6 +142,8 @@ function myTree(domEl, x) {
     '<circle fill="red" cx="120" cy="120" r="30" />' +
     '</g></g>'
 
+  FamilyTree.miniMap.draggable = false
+
   familyTree = new FamilyTree(domEl, {
     nodes: x,
     mouseScrool: FamilyTree.none,
@@ -157,6 +159,7 @@ function myTree(domEl, x) {
     siblingSeparation: 80,
     minPartnerSeparation: 50,
     orderBy: "anak",
+    miniMap: true,
     toolbar: {
       fullScreen: true,
       zoom: true,
