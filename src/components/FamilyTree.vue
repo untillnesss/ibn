@@ -213,13 +213,21 @@ function myTree(domEl, x) {
 
   familyTree.on('field', function (sender, args) {
     if (args.name == 'born') {
-      let date = new Date(args.value)
-      args.value = date.toLocaleDateString('id-ID', {
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-      })
+      if (args.value == '' || args.value == null) {
+        args.value = '-'
+        return
+      }
+      try {
+        let date = new Date(args.value)
+        args.value = date.toLocaleDateString('id-ID', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      } catch {
+        args.value = '-'
+      }
     }
 
     if (args.name == 'die') {
