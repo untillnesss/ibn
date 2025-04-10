@@ -134,13 +134,13 @@ function myTree(domEl, x) {
     mouseScrool: FamilyTree.none,
     scaleInitial: getOptions().scaleInitial,
     mode: 'dark',
-    template: 'sriniz',
+    template: 'john',
     roots: ['_ui8p'],
     nodeMenu: {
       edit: { text: 'Ubah' },
       details: { text: 'Lihat Selengkapnya' },
     },
-
+    orderBy: "anak",
     toolbar: {
       fullScreen: true,
       zoom: true,
@@ -154,6 +154,7 @@ function myTree(domEl, x) {
       field_0: 'name',
       field_1: 'born',
       field_2: 'city',
+      field_3: 'anak',
       img_0: 'photo',
     },
     editForm: {
@@ -166,6 +167,7 @@ function myTree(domEl, x) {
       saveAndCloseBtn: 'Simpan',
       cancelBtn: 'Tutup',
       elements: [
+        { type: 'textbox', label: 'Anak Ke-', binding: 'anak' },
         { type: 'textbox', label: 'Nama Lengkap', binding: 'name' },
         {
           type: 'select',
