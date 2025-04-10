@@ -42,6 +42,23 @@ onUnmounted(() => {
 })
 
 function myTree(domEl, x) {
+  console.log(FamilyTree.templates.john);
+  console.log(FamilyTree.templates.john_male);
+
+
+  const field0Template =
+    '<text data-width="230" style="font-size: 16px;font-weight:bold;" fill="#aeaeae" x="60" y="145" text-anchor="middle">{val}</text>'
+  const field1Template =
+    '<text data-width="150" style="font-size: 13px;" fill="#aeaeae" x="60" y="160" text-anchor="middle">{val}</text>'
+
+  FamilyTree.templates.john.field_0 = field0Template
+  FamilyTree.templates.john_male.field_0 = field0Template
+  FamilyTree.templates.john_female.field_0 = field0Template
+
+  FamilyTree.templates.john.field_1 = field1Template
+  FamilyTree.templates.john_male.field_1 = field1Template
+  FamilyTree.templates.john_female.field_1 = field1Template
+
   FamilyTree.templates.sriniz = Object.assign({}, FamilyTree.templates.base)
 
   const nodeWidth = 380
@@ -67,10 +84,6 @@ function myTree(domEl, x) {
           ${FamilyTree.icon.ft(15, 15, '#bd00ad', 7.5, 7.5)}
         </g>`
 
-  const field0Template =
-    '<text data-width="200" style="font-size: 20px; font-weight: bold;" fill="#ffffff" x="130" y="30">{val}</text>'
-  const field1Template =
-    '<text data-width="180" style="font-size: 12px; font-weight: normal;" fill="#ffffff" x="130" y="50">Lahir: {val}</text>'
   const field2Template =
     '<text data-width="180" style="font-size: 12px; font-weight: normal;" fill="#ffffff" x="130" y="70">Alamat: {val}</text>'
 
@@ -140,6 +153,9 @@ function myTree(domEl, x) {
       edit: { text: 'Ubah' },
       details: { text: 'Lihat Selengkapnya' },
     },
+    levelSeparation: 100,
+    siblingSeparation: 80,
+    minPartnerSeparation: 50,
     orderBy: "anak",
     toolbar: {
       fullScreen: true,
