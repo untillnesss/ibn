@@ -33,8 +33,6 @@ onMounted(() => {
 
     if (unsubscribe) unsubscribe()
   })
-
-  myTree(tree.value, familyTreeNodes.value)
 })
 
 onUnmounted(() => {

@@ -5,7 +5,7 @@
     "": {
       "name": "ibn",
       "dependencies": {
-        "@balkangraph/familytree.js": "^1.9.45",
+        "@balkangraph/familytree.js": "^1.9.51",
         "firebase": "^11.6.0",
         "vue": "^3.5.13",
         "vue-router": "^4.5.0",
@@ -87,7 +87,7 @@
 
     "@babel/types": ["@babel/types@7.27.0", "", { "dependencies": { "@babel/helper-string-parser": "^7.25.9", "@babel/helper-validator-identifier": "^7.25.9" } }, "sha512-H45s8fVLYjbhFH62dIJ3WtmJ6RSPt/3DRO0ZcT2SUiYiQyz3BLVb9ADEnLl91m74aQPS3AzzeajZHYOalWe3bg=="],
 
-    "@balkangraph/familytree.js": ["@balkangraph/familytree.js@1.9.45", "", {}, "sha512-AGhU7FgIoEG7dSsQ0jvx2RGP6qyvFU/h3FloaiJXNaq3OOByOHGUBbWLNz4dvxoIP8584GAF/FDYfpus02oSgw=="],
+    "@balkangraph/familytree.js": ["@balkangraph/familytree.js@1.9.51", "", {}, "sha512-Z7BTU1YTEbVKzDp6Gw67eqqmDUTf+PvoZ6AJ2ysDgPaXA+wYcK8jFHjq+Lw6edFw9OCIZZuBGzEgG0pFFKBJxw=="],
 
     "@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.25.2", "", { "os": "aix", "cpu": "ppc64" }, "sha512-wCIboOL2yXZym2cgm6mlA742s9QeJ8DjGVaL39dLN4rRwrOgOyYSnOaFPhKZGLb2ngj4EyfAFjsNJwPXZvseag=="],
 
