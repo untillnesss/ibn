@@ -40,32 +40,11 @@ onUnmounted(() => {
 })
 
 function myTree(domEl, x) {
-  console.log(FamilyTree.templates.john)
-  console.log(FamilyTree.templates.john_male)
-
-  const field0Template =
-    '<text data-width="230" style="font-size: 16px;font-weight:bold;" fill="#aeaeae" x="60" y="145" text-anchor="middle">{val}</text>'
-  const field1Template =
-    '<text data-width="150" style="font-size: 13px;" fill="#aeaeae" x="60" y="160" text-anchor="middle">{val}</text>'
-
-  FamilyTree.templates.john.field_0 = field0Template
-  FamilyTree.templates.john_male.field_0 = field0Template
-  FamilyTree.templates.john_female.field_0 = field0Template
-
-  FamilyTree.templates.john.field_1 = field1Template
-  FamilyTree.templates.john_male.field_1 = field1Template
-  FamilyTree.templates.john_female.field_1 = field1Template
-
   FamilyTree.templates.sriniz = Object.assign({}, FamilyTree.templates.base)
 
-  const nodeWidth = 380
-  const nodeHeight = 95
-
-  FamilyTree.templates.sriniz.size = [nodeWidth, nodeHeight]
-  FamilyTree.templates.sriniz.node = `<rect x="0" y="0" height="${nodeHeight}" width="${nodeWidth}" stroke-width="1" rx="15" ry="15"></rect>`
-
-  FamilyTree.templates.sriniz.nodeMenuButton =
-    '<use data-ctrl-n-menu-id="{id}" x="350" y="70" xlink:href="#base_node_menu" fill="#ffffff"/>'
+  FamilyTree.templates.sriniz.size = [225, 90]
+  FamilyTree.templates.sriniz.node =
+    '<rect x="0" y="0" height="90" width="225" stroke-width="1" rx="15" ry="15"></rect>'
 
   FamilyTree.templates.sriniz.defs = `
         <g transform="matrix(0.05,0,0,0.05,-13 ,-12)" id="heart">
@@ -73,21 +52,25 @@ function myTree(domEl, x) {
         </g>
         <g id="sriniz_male_up">
           <circle cx="15" cy="15" r="10" fill="#fff" stroke="#fff" stroke-width="1"></circle>
-          ${FamilyTree.icon.ft(15, 15, '#0070a6', 7.5, 7.5)}
+          ${FamilyTree.icon.ft(15, 15, '#039BE5', 7.5, 7.5)}
         </g>
 
         <g id="sriniz_female_up">
           <circle cx="15" cy="15" r="10" fill="#fff" stroke="#fff" stroke-width="1"></circle>
-          ${FamilyTree.icon.ft(15, 15, '#bd00ad', 7.5, 7.5)}
+          ${FamilyTree.icon.ft(15, 15, '#FF46A3', 7.5, 7.5)}
         </g>`
 
+  const field0Template =
+    '<text style="font-size: 16px; font-weight: bold;" fill="#ffffff" x="100" y="30">{val}</text>'
+  const field1Template =
+    '<text style="font-size: 12px; font-weight: bold;" fill="#ffffff" x="100" y="50">{val}</text>'
   const field2Template =
-    '<text data-width="180" style="font-size: 12px; font-weight: normal;" fill="#ffffff" x="130" y="70">Alamat: {val}</text>'
+    '<text data-width="115" style="font-size: 11px;" fill="#ffffff" x="100" y="68">Alamat: {val}</text>'
 
   // Male
   FamilyTree.templates.sriniz_male = Object.assign({}, FamilyTree.templates.sriniz)
   FamilyTree.templates.sriniz_male.node =
-    '<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#0070a6" stroke="#aeaeae" rx="15" ry="15"></rect>'
+    '<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#039BE5" stroke="#aeaeae" rx="15" ry="15"></rect>'
 
   FamilyTree.templates.sriniz_male.field_0 = field0Template
   FamilyTree.templates.sriniz_male.field_1 = field1Template
@@ -96,19 +79,19 @@ function myTree(domEl, x) {
   // Female
   FamilyTree.templates.sriniz_female = Object.assign({}, FamilyTree.templates.sriniz)
   FamilyTree.templates.sriniz_female.node =
-    '<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#bd00ad" stroke="#aeaeae" rx="15" ry="15"></rect>'
+    '<rect x="0" y="0" height="{h}" width="{w}" stroke-width="1" fill="#FF46A3" stroke="#aeaeae" rx="15" ry="15"></rect>'
 
   FamilyTree.templates.sriniz_female.field_0 = field0Template
   FamilyTree.templates.sriniz_female.field_1 = field1Template
   FamilyTree.templates.sriniz_female.field_2 = field2Template
 
   const expandIconMale =
-    '<circle cx="97" cy="-16" r="10" fill="#0070a6" stroke="#fff" stroke-width="1"><title>Expand</title></circle>' +
+    '<circle cx="97" cy="-16" r="10" fill="#039BE5" stroke="#fff" stroke-width="1"><title>Expand</title></circle>' +
     '<line x1="90" y1="-16" x2="104" y2="-16" stroke-width="1" stroke="#fff"></line>' +
     '<line x1="97" y1="-23" x2="97" y2="-9" stroke-width="1" stroke="#fff"></line>'
 
   const expandIconFemale =
-    '<circle cx="97" cy="-16" r="10" fill="#bd00ad" stroke="#fff" stroke-width="1"></circle>' +
+    '<circle cx="97" cy="-16" r="10" fill="#FF46A3" stroke="#fff" stroke-width="1"></circle>' +
     '<line x1="90" y1="-16" x2="104" y2="-16" stroke-width="1" stroke="#fff"></line>' +
     '<line x1="97" y1="-23" x2="97" y2="-9" stroke-width="1" stroke="#fff"></line>'
 
@@ -118,24 +101,24 @@ function myTree(domEl, x) {
   // Image
   const imgTemplate =
     '<clipPath id="ulaImg">' +
-    '<rect  height="75" width="75" x="45" y="10" stroke-width="1" fill="#bd00ad" stroke="#aeaeae" rx="15" ry="15"></rect>' +
+    '<rect height="75" width="75" x="7" y="7" stroke-width="1" fill="#FF46A3" stroke="#aeaeae" rx="15" ry="15"></rect>' +
     '</clipPath>' +
-    '<image x="45" y="10" preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg)" xlink:href="{val}" width="75" height="75">' +
+    '<image x="7" y="7" preserveAspectRatio="xMidYMid slice" clip-path="url(#ulaImg)" xlink:href="{val}" width="75" height="75">' +
     '</image>'
 
   FamilyTree.templates.sriniz_male.img_0 = imgTemplate
   FamilyTree.templates.sriniz_female.img_0 = imgTemplate
 
-  FamilyTree.templates.sriniz_male.up = '<use x="350" y="0" xlink:href="#sriniz_male_up"></use>'
-  FamilyTree.templates.sriniz_female.up = '<use x="350" y="0" xlink:href="#sriniz_female_up"></use>'
+  FamilyTree.templates.sriniz_male.up = '<use x="195" y="0" xlink:href="#sriniz_male_up"></use>'
+  FamilyTree.templates.sriniz_female.up = '<use x="195" y="0" xlink:href="#sriniz_female_up"></use>'
 
   // Pointer
   FamilyTree.templates.sriniz.pointer =
     '<g data-pointer="pointer" transform="matrix(0,0,0,0,80,80)">><g transform="matrix(0.3,0,0,0.3,-17,-17)">' +
-    '<polygon fill="#0070a6" points="53.004,173.004 53.004,66.996 0,120" />' +
-    '<polygon fill="#0070a6" points="186.996,66.996 186.996,173.004 240,120" />' +
-    '<polygon fill="#bd00ad" points="66.996,53.004 173.004,53.004 120,0" />' +
-    '<polygon fill="#bd00ad" points="120,240 173.004,186.996 66.996,186.996" />' +
+    '<polygon fill="#039BE5" points="53.004,173.004 53.004,66.996 0,120" />' +
+    '<polygon fill="#039BE5" points="186.996,66.996 186.996,173.004 240,120" />' +
+    '<polygon fill="#FF46A3" points="66.996,53.004 173.004,53.004 120,0" />' +
+    '<polygon fill="#FF46A3" points="120,240 173.004,186.996 66.996,186.996" />' +
     '<circle fill="red" cx="120" cy="120" r="30" />' +
     '</g></g>'
 
@@ -148,7 +131,7 @@ function myTree(domEl, x) {
     mouseScrool: FamilyTree.none,
     scaleInitial: getOptions().scaleInitial,
     mode: 'dark',
-    template: 'john',
+    template: 'sriniz',
     roots: ['_ui8p'],
     nodeMenu: {
       edit: { text: 'Ubah' },
