@@ -17,6 +17,7 @@ import maleAvatar from '@/assets/avatars/male-avatar.svg'
 import femaleAvatar from '@/assets/avatars/female-avatar.svg'
 import { openPhotoCropModal } from '@/services/photoCropLauncher'
 import { uploadPhoto } from '@/services/uploadService'
+import { openImageLightbox } from '@/services/imageLightbox'
 
 const tableName = 'families'
 
@@ -24,6 +25,13 @@ const tree = useTemplateRef('tree')
 const familyTreeNodes = ref([])
 
 let familyTree, unsubscribe
+
+function handleAvatarClick(e) {
+  const avatarImg = e.target.closest('#bft-avatar img')
+  if (avatarImg && avatarImg.src) {
+    openImageLightbox(avatarImg.src)
+  }
+}
 
 onMounted(() => {
   const familiesRef = collection(db, tableName)
@@ -37,10 +45,13 @@ onMounted(() => {
 
     if (unsubscribe) unsubscribe()
   })
+
+  document.addEventListener('click', handleAvatarClick)
 })
 
 onUnmounted(() => {
   if (unsubscribe) unsubscribe()
+  document.removeEventListener('click', handleAvatarClick)
 })
 
 function myTree(domEl, x) {
@@ -397,3 +408,9 @@ async function deleteDocsByField(id) {
 </template>
 
 <style scoped></style>
+
+<style>
+#bft-avatar img {
+  cursor: zoom-in;
+}
+</style>
