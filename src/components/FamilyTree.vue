@@ -229,7 +229,7 @@ function myTree(domEl, x) {
   })
 
   familyTree.on('field', function (sender, args) {
-    if (args.name == 'photo') {
+    if (args.name == 'photo' && !args.data.templateName && !args.data.tags) {
       if (args.value == '' || args.value == null) {
         args.value = args.data.gender == 'female' ? femaleAvatar : maleAvatar
       }
