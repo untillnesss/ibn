@@ -42,6 +42,20 @@ onUnmounted(() => {
 })
 
 function myTree(domEl, x) {
+  FamilyTree.templates.father.node = FamilyTree.templates.father.node.replace('Add father', 'Tambah Ayah')
+  FamilyTree.templates.mother.node = FamilyTree.templates.mother.node.replace('Add mother', 'Tambah Ibu')
+  FamilyTree.templates.husband.node = FamilyTree.templates.husband.node.replace('Add husband', 'Tambah Suami')
+  FamilyTree.templates.wife.node = FamilyTree.templates.wife.node.replace('Add wife', 'Tambah Istri')
+  FamilyTree.templates.son.node = FamilyTree.templates.son.node.replace('Add son', 'Tambah Anak Laki-laki')
+  FamilyTree.templates.daughter.node = FamilyTree.templates.daughter.node.replace(
+    'Add daughter',
+    'Tambah Anak Perempuan',
+  )
+  FamilyTree.templates.partner.node = FamilyTree.templates.partner.node.replace(
+    'Add partner',
+    'Tambah Pasangan',
+  )
+
   FamilyTree.templates.sriniz = Object.assign({}, FamilyTree.templates.base)
 
   FamilyTree.templates.sriniz.size = [340, 90]
@@ -202,7 +216,7 @@ function myTree(domEl, x) {
           { type: 'textbox', label: 'WA', binding: 'phone' },
         ],
         { type: 'textbox', label: 'Alamat', binding: 'city' },
-        { type: 'textbox', label: 'Foto', binding: 'photo', btn: 'Upload' },
+        { type: 'textbox', label: 'Foto', binding: 'photo', btn: 'Unggah' },
       ],
     },
   })
