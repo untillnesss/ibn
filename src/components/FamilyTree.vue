@@ -13,6 +13,8 @@ import {
   getDocs,
 } from 'firebase/firestore'
 import { db } from '@/main'
+import maleAvatar from '@/assets/avatars/male-avatar.svg'
+import femaleAvatar from '@/assets/avatars/female-avatar.svg'
 
 const tableName = 'families'
 
@@ -42,9 +44,12 @@ onUnmounted(() => {
 function myTree(domEl, x) {
   FamilyTree.templates.sriniz = Object.assign({}, FamilyTree.templates.base)
 
-  FamilyTree.templates.sriniz.size = [225, 90]
+  FamilyTree.templates.sriniz.size = [340, 90]
   FamilyTree.templates.sriniz.node =
-    '<rect x="0" y="0" height="90" width="225" stroke-width="1" rx="15" ry="15"></rect>'
+    '<rect x="0" y="0" height="90" width="340" stroke-width="1" rx="15" ry="15"></rect>'
+
+  FamilyTree.templates.sriniz.nodeMenuButton =
+    '<use data-ctrl-n-menu-id="{id}" x="335" y="95" xlink:href="#base_node_menu"/>'
 
   FamilyTree.templates.sriniz.defs = `
         <g transform="matrix(0.05,0,0,0.05,-13 ,-12)" id="heart">
@@ -65,7 +70,7 @@ function myTree(domEl, x) {
   const field1Template =
     '<text style="font-size: 12px; font-weight: bold;" fill="#ffffff" x="100" y="50">{val}</text>'
   const field2Template =
-    '<text data-width="115" style="font-size: 11px;" fill="#ffffff" x="100" y="68">Alamat: {val}</text>'
+    '<text data-width="230" style="font-size: 11px;" fill="#ffffff" x="100" y="68">Alamat: {val}</text>'
 
   // Male
   FamilyTree.templates.sriniz_male = Object.assign({}, FamilyTree.templates.sriniz)
@@ -109,8 +114,8 @@ function myTree(domEl, x) {
   FamilyTree.templates.sriniz_male.img_0 = imgTemplate
   FamilyTree.templates.sriniz_female.img_0 = imgTemplate
 
-  FamilyTree.templates.sriniz_male.up = '<use x="195" y="0" xlink:href="#sriniz_male_up"></use>'
-  FamilyTree.templates.sriniz_female.up = '<use x="195" y="0" xlink:href="#sriniz_female_up"></use>'
+  FamilyTree.templates.sriniz_male.up = '<use x="310" y="0" xlink:href="#sriniz_male_up"></use>'
+  FamilyTree.templates.sriniz_female.up = '<use x="310" y="0" xlink:href="#sriniz_female_up"></use>'
 
   // Pointer
   FamilyTree.templates.sriniz.pointer =
@@ -215,6 +220,12 @@ function myTree(domEl, x) {
   })
 
   familyTree.on('field', function (sender, args) {
+    if (args.name == 'photo') {
+      if (args.value == '' || args.value == null) {
+        args.value = args.data.gender == 'female' ? femaleAvatar : maleAvatar
+      }
+    }
+
     if (args.name == 'born') {
       if (args.value == '' || args.value == null) {
         args.value = '-'
