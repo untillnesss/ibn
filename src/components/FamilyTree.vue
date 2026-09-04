@@ -168,7 +168,7 @@ function myTree(domEl, x) {
     levelSeparation: 100,
     siblingSeparation: 80,
     minPartnerSeparation: 50,
-    orderBy: 'anak',
+    orderBy: 'born',
     miniMap: true,
     toolbar: {
       fullScreen: true,
