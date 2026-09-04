@@ -51,6 +51,12 @@ function myTree(domEl, x) {
   FamilyTree.templates.sriniz.nodeMenuButton =
     '<use data-ctrl-n-menu-id="{id}" x="305" y="55" xlink:href="#sriniz_node_menu"/>'
 
+  FamilyTree.templates.sriniz.nodeTreeMenuButton =
+    '<use data-ctrl-n-t-menu-id="{id}" x="305" y="13" xlink:href="#base_tree_menu"/>'
+
+  FamilyTree.templates.sriniz.nodeTreeMenuCloseButton =
+    '<use data-ctrl-n-t-menu-c="" x="305" y="13" xlink:href="#base_tree_menu_close"/>'
+
   FamilyTree.templates.sriniz.defs = `
         <g transform="matrix(0.05,0,0,0.05,-13 ,-12)" id="heart">
           <path d="M448,256c0-106-86-192-192-192S64,150,64,256s86,192,192,192S448,362,448,256Z" style="fill:#fff;stroke:red;stroke-miterlimit:10;stroke-width:24px" fill="red"></path><path d="M256,360a16,16,0,0,1-9-2.78c-39.3-26.68-56.32-45-65.7-56.41-20-24.37-29.58-49.4-29.3-76.5.31-31.06,25.22-56.33,55.53-56.33,20.4,0,35,10.63,44.1,20.41a6,6,0,0,0,8.72,0c9.11-9.78,23.7-20.41,44.1-20.41,30.31,0,55.22,25.27,55.53,56.33.28,27.1-9.31,52.13-29.3,76.5-9.38,11.44-26.4,29.73-65.7,56.41A16,16,0,0,1,256,360Z" fill="red"></path>
@@ -60,6 +66,11 @@ function myTree(domEl, x) {
           <circle cx="5" cy="11" r="2" fill="#888888"></circle>
           <circle cx="11" cy="11" r="2" fill="#888888"></circle>
           <circle cx="17" cy="11" r="2" fill="#888888"></circle>
+        </g>
+        <g id="sriniz_expand_icon" style="cursor:pointer;">
+          <circle cx="11" cy="11" r="14" fill="#ffffff"></circle>
+          <line x1="5" y1="11" x2="17" y2="11" stroke-width="2" stroke="#888888"></line>
+          <line x1="11" y1="5" x2="11" y2="17" stroke-width="2" stroke="#888888"></line>
         </g>
         <g id="sriniz_male_up">
           <circle cx="15" cy="15" r="10" fill="#fff" stroke="#fff" stroke-width="1"></circle>
@@ -96,18 +107,10 @@ function myTree(domEl, x) {
   FamilyTree.templates.sriniz_female.field_1 = field1Template
   FamilyTree.templates.sriniz_female.field_2 = field2Template
 
-  const expandIconMale =
-    '<circle cx="97" cy="-16" r="10" fill="#039BE5" stroke="#fff" stroke-width="1"><title>Expand</title></circle>' +
-    '<line x1="90" y1="-16" x2="104" y2="-16" stroke-width="1" stroke="#fff"></line>' +
-    '<line x1="97" y1="-23" x2="97" y2="-9" stroke-width="1" stroke="#fff"></line>'
+  const expandIcon = '<use x="270" y="13" xlink:href="#sriniz_expand_icon"><title>Expand</title></use>'
 
-  const expandIconFemale =
-    '<circle cx="97" cy="-16" r="10" fill="#FF46A3" stroke="#fff" stroke-width="1"></circle>' +
-    '<line x1="90" y1="-16" x2="104" y2="-16" stroke-width="1" stroke="#fff"></line>' +
-    '<line x1="97" y1="-23" x2="97" y2="-9" stroke-width="1" stroke="#fff"></line>'
-
-  FamilyTree.templates.sriniz_male.plus = expandIconMale
-  FamilyTree.templates.sriniz_female.plus = expandIconFemale
+  FamilyTree.templates.sriniz_male.plus = expandIcon
+  FamilyTree.templates.sriniz_female.plus = expandIcon
 
   // Image
   const imgTemplate =
