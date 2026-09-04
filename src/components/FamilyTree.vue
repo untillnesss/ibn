@@ -142,6 +142,7 @@ function myTree(domEl, x) {
     '</g></g>'
 
   FamilyTree.miniMap.draggable = false
+  FamilyTree.SEARCH_PLACEHOLDER = 'Cari berdasarkan nama...'
 
   familyTree = new FamilyTree(domEl, {
     nodes: x,
