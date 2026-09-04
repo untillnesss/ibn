@@ -15,6 +15,8 @@ import {
 import { db } from '@/main'
 import maleAvatar from '@/assets/avatars/male-avatar.svg'
 import femaleAvatar from '@/assets/avatars/female-avatar.svg'
+import { openPhotoCropModal } from '@/services/photoCropLauncher'
+import { uploadPhoto } from '@/services/uploadService'
 
 const tableName = 'families'
 
@@ -219,6 +221,24 @@ function myTree(domEl, x) {
         { type: 'textbox', label: 'Foto', binding: 'photo', btn: 'Unggah' },
       ],
     },
+  })
+
+  familyTree.editUI.on('element-btn-click', function (sender, args) {
+    FamilyTree.fileUploadDialog(async function (file) {
+      if (!file) return
+
+      const croppedBlob = await openPhotoCropModal(file)
+      if (!croppedBlob) return
+
+      try {
+        const url = await uploadPhoto(croppedBlob)
+        args.input.value = url
+        if (typeof sender.setAvatar === 'function') sender.setAvatar(url)
+      } catch (err) {
+        console.error('Photo upload failed:', err)
+        alert('Gagal mengunggah foto. Silakan coba lagi.')
+      }
+    })
   })
 
   familyTree.on('render-link', function (sender, args) {
