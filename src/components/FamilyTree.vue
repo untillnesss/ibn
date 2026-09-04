@@ -49,11 +49,17 @@ function myTree(domEl, x) {
     '<rect x="0" y="0" height="90" width="340" stroke-width="1" rx="15" ry="15"></rect>'
 
   FamilyTree.templates.sriniz.nodeMenuButton =
-    '<use data-ctrl-n-menu-id="{id}" x="335" y="95" xlink:href="#base_node_menu"/>'
+    '<use data-ctrl-n-menu-id="{id}" x="305" y="55" xlink:href="#sriniz_node_menu"/>'
 
   FamilyTree.templates.sriniz.defs = `
         <g transform="matrix(0.05,0,0,0.05,-13 ,-12)" id="heart">
           <path d="M448,256c0-106-86-192-192-192S64,150,64,256s86,192,192,192S448,362,448,256Z" style="fill:#fff;stroke:red;stroke-miterlimit:10;stroke-width:24px" fill="red"></path><path d="M256,360a16,16,0,0,1-9-2.78c-39.3-26.68-56.32-45-65.7-56.41-20-24.37-29.58-49.4-29.3-76.5.31-31.06,25.22-56.33,55.53-56.33,20.4,0,35,10.63,44.1,20.41a6,6,0,0,0,8.72,0c9.11-9.78,23.7-20.41,44.1-20.41,30.31,0,55.22,25.27,55.53,56.33.28,27.1-9.31,52.13-29.3,76.5-9.38,11.44-26.4,29.73-65.7,56.41A16,16,0,0,1,256,360Z" fill="red"></path>
+        </g>
+        <g id="sriniz_node_menu" style="cursor:pointer;">
+          <circle cx="11" cy="11" r="14" fill="#ffffff"></circle>
+          <circle cx="5" cy="11" r="2" fill="#888888"></circle>
+          <circle cx="11" cy="11" r="2" fill="#888888"></circle>
+          <circle cx="17" cy="11" r="2" fill="#888888"></circle>
         </g>
         <g id="sriniz_male_up">
           <circle cx="15" cy="15" r="10" fill="#fff" stroke="#fff" stroke-width="1"></circle>
@@ -70,7 +76,7 @@ function myTree(domEl, x) {
   const field1Template =
     '<text style="font-size: 12px; font-weight: bold;" fill="#ffffff" x="100" y="50">{val}</text>'
   const field2Template =
-    '<text data-width="230" style="font-size: 11px;" fill="#ffffff" x="100" y="68">Alamat: {val}</text>'
+    '<text data-width="150" style="font-size: 11px;" fill="#ffffff" x="100" y="68">{val}</text>'
 
   // Male
   FamilyTree.templates.sriniz_male = Object.assign({}, FamilyTree.templates.sriniz)
@@ -224,6 +230,10 @@ function myTree(domEl, x) {
       if (args.value == '' || args.value == null) {
         args.value = args.data.gender == 'female' ? femaleAvatar : maleAvatar
       }
+    }
+
+    if (args.name == 'city') {
+      args.value = 'Alamat: ' + (args.value || '')
     }
 
     if (args.name == 'born') {
