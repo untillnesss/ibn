@@ -1,23 +1,20 @@
 <script setup>
 import { ref, onMounted, useTemplateRef, onUnmounted } from 'vue'
 import FamilyTree from '@balkangraph/familytree.js'
-import {
-  collection,
-  onSnapshot,
-  setDoc,
-  doc,
-  updateDoc,
-  deleteDoc,
-  query,
-  where,
-  getDocs,
-} from 'firebase/firestore'
+import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '@/main'
 import maleAvatar from '@/assets/avatars/male-avatar.svg'
 import femaleAvatar from '@/assets/avatars/female-avatar.svg'
 import { openPhotoCropModal } from '@/services/photoCropLauncher'
 import { uploadPhoto } from '@/services/uploadService'
 import { openImageLightbox } from '@/services/imageLightbox'
+import {
+  applyChangePayload,
+  fetchAllFamilies,
+  findNodeById,
+} from '@/services/familyDataService'
+import { currentUser, isAdmin } from '@/services/authState'
+import { ensureLoggedIn } from '@/services/authActions'
 
 const tableName = 'families'
 
@@ -323,21 +320,69 @@ function myTree(domEl, x) {
     return false
   })
 
+  requireLoginBeforeEditing(familyTree)
+
   familyTree.onUpdateNode(async (args) => {
-    console.log(args)
+    if (isAdmin.value) {
+      await applyChangePayload(args)
+      return
+    }
 
-    args.addNodesData.forEach(async (node) => {
-      await addDocWithIdInData(node)
-    })
+    const user = currentUser.value
+    if (!user) {
+      // Jalur cadangan (mis. tombol hapus di tampilan detail): tanpa login, batalkan saja.
+      await revertToLiveData()
+      alert('Silakan masuk dengan Google terlebih dahulu (tombol di kiri atas).')
+      return
+    }
 
-    args.updateNodesData.forEach(async (node) => {
-      await updateByField(node.id, node)
-    })
+    try {
+      const removeNodeName =
+        args.removeNodeId != null ? ((await findNodeById(args.removeNodeId))?.name ?? null) : null
 
-    if (args.removeNodeId != null) {
-      await deleteDocsByField(args.removeNodeId)
+      await addDoc(collection(db, 'pending_changes'), {
+        payload: args,
+        removeNodeName,
+        submittedBy: user.displayName ?? user.email,
+        submitterEmail: user.email,
+        submitterUid: user.uid,
+        submittedAt: serverTimestamp(),
+        status: 'pending',
+      })
+      alert('Perubahan Anda telah dikirim dan menunggu persetujuan admin. Lihat statusnya di menu "Riwayat".')
+    } catch (err) {
+      console.error(err)
+      alert('Gagal mengirim perubahan. Silakan coba lagi.')
+    } finally {
+      await revertToLiveData()
     }
   })
+}
+
+async function revertToLiveData() {
+  familyTreeNodes.value = await fetchAllFamilies()
+  familyTree.load(familyTreeNodes.value)
+}
+
+// Form edit & panel "Tambah" hanya boleh dibuka setelah login Google.
+// Mode "lihat detail" (editUI.show(id, true)) tetap terbuka untuk semua.
+function requireLoginBeforeEditing(tree) {
+  const originalShow = tree.editUI.show.bind(tree.editUI)
+  tree.editUI.show = function (id, detailsMode, ...rest) {
+    if (detailsMode || currentUser.value) return originalShow(id, detailsMode, ...rest)
+    ensureLoggedIn().then((user) => {
+      if (user) originalShow(id, detailsMode, ...rest)
+    })
+    return false
+  }
+
+  const originalShowTreeMenu = tree.showTreeMenu.bind(tree)
+  tree.showTreeMenu = function (id) {
+    if (currentUser.value) return originalShowTreeMenu(id)
+    ensureLoggedIn().then((user) => {
+      if (user) originalShowTreeMenu(id)
+    })
+  }
 }
 
 function getOptions() {
@@ -352,55 +397,6 @@ function getOptions() {
   return { enableSearch, scaleInitial }
 }
 
-async function addDocWithIdInData(data) {
-  // Step 1: Create a doc reference with a new ID
-  const docRef = doc(collection(db, tableName)) // auto-generates an ID
-  const id = docRef.id
-
-  // Step 2: Prepare your data with the ID included
-  const storedData = {
-    doc_id: id, // include the generated ID in the data
-    ...data,
-  }
-
-  // Step 3: Set the document with the ID
-  await setDoc(docRef, storedData)
-
-  console.log('Document created with ID and stored in data:', id)
-  return id
-}
-
-async function updateByField(id, data) {
-  const q = query(collection(db, tableName), where('id', '==', id))
-
-  const querySnapshot = await getDocs(q)
-
-  const updatePromises = querySnapshot.docs.map((document) =>
-    updateDoc(doc(db, tableName, document.id), {
-      ...data,
-    }),
-  )
-
-  await Promise.all(updatePromises)
-
-  console.log('Document(s) updated based on field match')
-}
-
-async function deleteDocsByField(id) {
-  const q = query(collection(db, tableName), where('id', '==', id))
-
-  try {
-    const querySnapshot = await getDocs(q)
-    const deletePromises = querySnapshot.docs.map((document) =>
-      deleteDoc(doc(db, tableName, document.id)),
-    )
-
-    await Promise.all(deletePromises)
-    console.log('Matching documents deleted')
-  } catch (error) {
-    console.error('Error deleting documents:', error)
-  }
-}
 </script>
 
 <template>

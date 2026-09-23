@@ -1,0 +1,31 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Harus sama persis dengan isAdminUser() di src/services/authState.js.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['ping.mas.said@gmail.com'];
+    }
+
+    match /families/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /pending_changes/{docId} {
+      // Wajib login; submitterUid harus milik pengirim sendiri, status awal harus 'pending'.
+      allow create: if request.auth != null
+        && request.resource.data.submitterUid == request.auth.uid
+        && request.resource.data.status == 'pending';
+
+      // Admin melihat semua; user biasa hanya riwayat miliknya sendiri.
+      allow read: if isAdmin()
+        || (request.auth != null && resource.data.submitterUid == request.auth.uid);
+
+      allow update, delete: if isAdmin();
+    }
+  }
+}
