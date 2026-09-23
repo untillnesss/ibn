@@ -471,7 +471,10 @@ async function submitChange(payload) {
 
 async function revertToLiveData() {
   familyTreeNodes.value = await fetchAllFamilies()
-  familyTree.load(familyTreeNodes.value)
+  // Jangan pakai familyTree.load(): itu menggambar dengan action.init yang mereset kamera
+  // ke posisi awal. action.update menggambar ulang dengan viewBox (posisi & zoom) saat ini.
+  familyTree.config.nodes = familyTreeNodes.value
+  familyTree.draw(FamilyTree.action.update)
 }
 
 // Form edit & panel "Tambah" hanya boleh dibuka setelah login Google.
