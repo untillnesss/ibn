@@ -12,15 +12,18 @@ import {
 import { db } from '@/main'
 import { currentUser, isAdmin, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser } from '@/services/authActions'
-import { applyChangePayload } from '@/services/familyDataService'
-import {
-  describeChange,
-  formatDate,
-  sortBySubmittedAt,
-  useRemovedNames,
-} from '@/services/changeSummary'
+import { applyChangePayload, fetchAllFamilies } from '@/services/familyDataService'
+import { describeChangeDetailed, formatDate, sortBySubmittedAt } from '@/services/changeSummary'
 
-const { removedNames, resolveRemovedNames } = useRemovedNames()
+// Snapshot data live, sebagai nilai "sebelum" pada diff.
+const liveById = ref({})
+
+async function refreshLiveData() {
+  const nodes = await fetchAllFamilies()
+  liveById.value = Object.fromEntries(nodes.map((n) => [n.id, n]))
+}
+
+const TYPE_LABELS = { add: 'Baru', update: 'Diubah', remove: 'Dihapus' }
 
 const login = signInWithGoogle
 const logout = signOutUser
@@ -47,7 +50,7 @@ watch(
     unsubscribeQueue = onSnapshot(q, (snapshot) => {
       const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
       pendingItems.value = sortBySubmittedAt(items, 'asc')
-      resolveRemovedNames(pendingItems.value)
+      refreshLiveData()
     })
   },
   { immediate: true },
@@ -122,9 +125,30 @@ const reject = (item) => resolve(item, 'rejected')
           <span class="date">{{ formatDate(item.submittedAt) }}</span>
         </div>
 
-        <div v-for="(change, i) in describeChange(item, removedNames)" :key="i" class="change">
-          <p class="heading">{{ change.heading }}</p>
-          <p v-for="(line, j) in change.details" :key="j" class="detail">{{ line }}</p>
+        <div
+          v-for="(block, i) in describeChangeDetailed(item, liveById)"
+          :key="i"
+          class="change"
+          :class="block.type"
+        >
+          <p class="heading">
+            <span class="tag" :class="block.type">{{ TYPE_LABELS[block.type] }}</span>
+            {{ block.heading }}
+          </p>
+          <p v-for="(relation, r) in block.relations" :key="`r${r}`" class="relation">
+            {{ relation }}
+          </p>
+
+          <table v-if="block.rows.length" class="diff">
+            <tbody>
+              <tr v-for="(row, j) in block.rows" :key="j">
+                <td class="label">{{ row.label }}</td>
+                <td v-if="block.type === 'update'" class="before">{{ row.before }}</td>
+                <td v-if="block.type === 'update'" class="arrow">→</td>
+                <td class="after">{{ row.after }}</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         <div class="actions">
@@ -205,6 +229,87 @@ const reject = (item) => resolve(item, 'rejected')
   gap: 12px;
   color: #aeaeae;
   font-size: 13px;
+}
+
+.change {
+  border-left: 3px solid #444;
+  padding-left: 10px;
+}
+
+.change.add {
+  border-left-color: #2e9e57;
+}
+
+.change.update {
+  border-left-color: #d9a520;
+}
+
+.change.remove {
+  border-left-color: #d9534f;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: bold;
+  padding: 1px 8px;
+  border-radius: 999px;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+
+.tag.add {
+  background: #0d4020;
+  color: #5ee08a;
+}
+
+.tag.update {
+  background: #5c4400;
+  color: #ffcc4d;
+}
+
+.tag.remove {
+  background: #4d1414;
+  color: #ff7a7a;
+}
+
+.relation {
+  margin: 0 0 4px;
+  color: #8ab4f8;
+  font-size: 13px;
+}
+
+.diff {
+  border-collapse: collapse;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.diff td {
+  padding: 2px 8px 2px 0;
+  vertical-align: top;
+}
+
+.diff .label {
+  color: #aeaeae;
+  white-space: nowrap;
+}
+
+.diff .before {
+  color: #ff7a7a;
+  text-decoration: line-through;
+}
+
+.diff .arrow {
+  color: #777;
+}
+
+.diff .after {
+  color: #e6e6e6;
+}
+
+.change.update .diff .after {
+  color: #5ee08a;
 }
 
 .back-link {
