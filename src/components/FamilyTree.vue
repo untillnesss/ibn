@@ -322,41 +322,151 @@ function myTree(domEl, x) {
 
   requireLoginBeforeEditing(familyTree)
 
-  familyTree.onUpdateNode(async (args) => {
-    if (isAdmin.value) {
-      await applyChangePayload(args)
-      return
-    }
-
-    const user = currentUser.value
-    if (!user) {
-      // Jalur cadangan (mis. tombol hapus di tampilan detail): tanpa login, batalkan saja.
-      await revertToLiveData()
-      alert('Silakan masuk dengan Google terlebih dahulu (tombol di kiri atas).')
-      return
-    }
-
-    try {
-      const removeNodeName =
-        args.removeNodeId != null ? ((await findNodeById(args.removeNodeId))?.name ?? null) : null
-
-      await addDoc(collection(db, 'pending_changes'), {
-        payload: args,
-        removeNodeName,
-        submittedBy: user.displayName ?? user.email,
-        submitterEmail: user.email,
-        submitterUid: user.uid,
-        submittedAt: serverTimestamp(),
-        status: 'pending',
-      })
-      alert('Perubahan Anda telah dikirim dan menunggu persetujuan admin. Lihat statusnya di menu "Riwayat".')
-    } catch (err) {
-      console.error(err)
-      alert('Gagal mengirim perubahan. Silakan coba lagi.')
-    } finally {
-      await revertToLiveData()
+  // Validasi sebelum form anggota BARU (draft) boleh disimpan.
+  familyTree.editUI.on('save', function (sender, args) {
+    if (!draft || args.data.id !== draft.currentId) return
+    const error = validateNewMember(args.data)
+    if (error) {
+      alert(error)
+      return false // form tetap terbuka, isian tidak hilang
     }
   })
+
+  // Form anggota baru ditutup tanpa disimpan: batalkan seluruh penambahan.
+  familyTree.editUI.on('cancel', function (sender, args) {
+    if (draft && args.id === draft.currentId) discardDraft()
+  })
+
+  familyTree.onUpdateNode(async (args) => {
+    if (draft) {
+      await continueDraft(args)
+      return
+    }
+
+    // Quick-add dari panel "Tambah" membuat node kosong: tahan dulu sebagai draft.
+    if (args.addNodesData?.length) {
+      startDraft(args)
+      return
+    }
+
+    await submitChange(clonePayload(args))
+  })
+}
+
+// ── Draft anggota baru ─────────────────────────────────────────────
+// Satu klik "Tambah ..." bisa membuat lebih dari satu node (mis. anak + pasangan).
+// Semua node baru harus diisi & disimpan lewat form, baru dikirim sebagai SATU proposal.
+let draft = null // { payload, queue: [id...], currentId }
+
+// Mengembalikan pesan error (string) kalau data anggota baru belum lengkap, atau null kalau valid.
+function validateNewMember(node) {
+  // TODO(human)
+}
+
+function clonePayload(payload) {
+  // Deep clone: memutus referensi ke objek milik library & membuang nilai undefined (ditolak Firestore).
+  return JSON.parse(
+    JSON.stringify({
+      addNodesData: payload.addNodesData ?? [],
+      updateNodesData: payload.updateNodesData ?? [],
+      removeNodeId: payload.removeNodeId ?? null,
+    }),
+  )
+}
+
+function startDraft(args) {
+  const payload = clonePayload(args)
+  draft = { payload, queue: payload.addNodesData.map((n) => n.id), currentId: null }
+  openNextDraftForm()
+}
+
+function openNextDraftForm() {
+  draft.currentId = draft.queue.shift()
+  // Tunggu animasi penyisipan node selesai sebelum membuka form.
+  setTimeout(() => {
+    if (draft) familyTree.editUI.show(draft.currentId)
+  }, 400)
+}
+
+async function continueDraft(args) {
+  const saved = clonePayload(args).updateNodesData.find((n) => n.id === draft.currentId)
+  if (!saved) {
+    // Ada perubahan lain di tengah pengisian draft: batalkan draft agar data tidak tercampur.
+    discardDraft()
+    alert('Penambahan anggota baru dibatalkan.')
+    return
+  }
+
+  mergeIntoDraft(clonePayload(args))
+
+  if (draft.queue.length) {
+    openNextDraftForm()
+    return
+  }
+
+  const payload = draft.payload
+  draft = null
+  await submitChange(payload)
+}
+
+function mergeIntoDraft(args) {
+  const { payload } = draft
+  for (const node of args.updateNodesData) {
+    const addIndex = payload.addNodesData.findIndex((n) => n.id === node.id)
+    if (addIndex !== -1) {
+      payload.addNodesData[addIndex] = { ...payload.addNodesData[addIndex], ...node }
+      continue
+    }
+    const updateIndex = payload.updateNodesData.findIndex((n) => n.id === node.id)
+    if (updateIndex !== -1) payload.updateNodesData[updateIndex] = node
+    else payload.updateNodesData.push(node)
+  }
+}
+
+function discardDraft() {
+  draft = null
+  revertToLiveData()
+}
+
+// ── Kirim perubahan ────────────────────────────────────────────────
+async function submitChange(payload) {
+  if (isAdmin.value) {
+    await applyChangePayload(payload)
+    return
+  }
+
+  const user = currentUser.value
+  if (!user) {
+    // Jalur cadangan (mis. tombol hapus di tampilan detail): tanpa login, batalkan saja.
+    await revertToLiveData()
+    alert('Silakan masuk dengan Google terlebih dahulu (tombol di kiri atas).')
+    return
+  }
+
+  try {
+    const removeNodeName =
+      payload.removeNodeId != null
+        ? ((await findNodeById(payload.removeNodeId))?.name ?? null)
+        : null
+
+    await addDoc(collection(db, 'pending_changes'), {
+      payload,
+      removeNodeName,
+      submittedBy: user.displayName ?? user.email,
+      submitterEmail: user.email,
+      submitterUid: user.uid,
+      submittedAt: serverTimestamp(),
+      status: 'pending',
+    })
+    alert(
+      'Perubahan Anda telah dikirim dan menunggu persetujuan admin. Lihat statusnya di menu "Riwayat".',
+    )
+  } catch (err) {
+    console.error(err)
+    alert('Gagal mengirim perubahan. Silakan coba lagi.')
+  } finally {
+    await revertToLiveData()
+  }
 }
 
 async function revertToLiveData() {
