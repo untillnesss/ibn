@@ -15,6 +15,7 @@ import {
 } from '@/services/familyDataService'
 import { currentUser, isAdmin } from '@/services/authState'
 import { ensureLoggedIn } from '@/services/authActions'
+import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/services/notify'
 
 const tableName = 'families'
 
@@ -244,7 +245,7 @@ function myTree(domEl, x) {
         if (typeof sender.setAvatar === 'function') sender.setAvatar(url)
       } catch (err) {
         console.error('Photo upload failed:', err)
-        alert('Gagal mengunggah foto. Silakan coba lagi.')
+        notifyError('Gagal mengunggah foto', 'Silakan coba lagi.')
       }
     })
   })
@@ -327,7 +328,7 @@ function myTree(domEl, x) {
     if (!draft || args.data.id !== draft.currentId) return
     const error = validateNewMember(args.data)
     if (error) {
-      alert(error)
+      notifyWarning('Data belum lengkap', error)
       return false // form tetap terbuka, isian tidak hilang
     }
   })
@@ -393,7 +394,7 @@ async function continueDraft(args) {
   if (!saved) {
     // Ada perubahan lain di tengah pengisian draft: batalkan draft agar data tidak tercampur.
     discardDraft()
-    alert('Penambahan anggota baru dibatalkan.')
+    notifyInfo('Dibatalkan', 'Penambahan anggota baru dibatalkan.')
     return
   }
 
@@ -439,7 +440,7 @@ async function submitChange(payload) {
   if (!user) {
     // Jalur cadangan (mis. tombol hapus di tampilan detail): tanpa login, batalkan saja.
     await revertToLiveData()
-    alert('Silakan masuk dengan Google terlebih dahulu (tombol di kiri atas).')
+    notifyInfo('Masuk diperlukan', 'Silakan masuk dengan Google terlebih dahulu (tombol di kiri atas).')
     return
   }
 
@@ -458,12 +459,13 @@ async function submitChange(payload) {
       submittedAt: serverTimestamp(),
       status: 'pending',
     })
-    alert(
-      'Perubahan Anda telah dikirim dan menunggu persetujuan admin. Lihat statusnya di menu "Riwayat".',
+    notifySuccess(
+      'Terkirim',
+      'Perubahan Anda menunggu persetujuan admin. Lihat statusnya di menu "Riwayat".',
     )
   } catch (err) {
     console.error(err)
-    alert('Gagal mengirim perubahan. Silakan coba lagi.')
+    notifyError('Gagal mengirim perubahan', 'Silakan coba lagi.')
   } finally {
     await revertToLiveData()
   }

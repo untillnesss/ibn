@@ -13,6 +13,7 @@ import { db } from '@/main'
 import { currentUser, isAdmin, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser } from '@/services/authActions'
 import GoogleIcon from '@/components/GoogleIcon.vue'
+import { notifyError } from '@/services/notify'
 import { applyChangePayload, fetchAllFamilies } from '@/services/familyDataService'
 import { describeChangeDetailed, formatDate, sortBySubmittedAt } from '@/services/changeSummary'
 
@@ -72,7 +73,7 @@ async function resolve(item, status) {
     })
   } catch (err) {
     console.error(err)
-    alert('Gagal memproses perubahan. Silakan coba lagi.')
+    notifyError('Gagal memproses', 'Perubahan tidak dapat diproses. Silakan coba lagi.')
   } finally {
     const next = new Set(busyIds.value)
     next.delete(item.id)

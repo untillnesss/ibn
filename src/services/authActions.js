@@ -1,6 +1,7 @@
 import { GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
 import { auth } from '@/main'
 import { currentUser } from '@/services/authState'
+import { confirmDialog, notifyError } from '@/services/notify'
 
 const IGNORED_ERRORS = ['auth/popup-closed-by-user', 'auth/cancelled-popup-request']
 
@@ -12,7 +13,7 @@ export async function signInWithGoogle() {
   } catch (err) {
     if (!IGNORED_ERRORS.includes(err.code)) {
       console.error(err)
-      alert('Gagal masuk dengan Google. Silakan coba lagi.')
+      notifyError('Gagal masuk', 'Tidak bisa masuk dengan Google. Silakan coba lagi.')
     }
     return null
   }
@@ -24,7 +25,12 @@ export function signOutUser() {
 
 export async function ensureLoggedIn() {
   if (currentUser.value) return currentUser.value
-  const ok = confirm('Anda harus masuk dengan akun Google sebelum mengubah data silsilah. Masuk sekarang?')
+  const ok = await confirmDialog({
+    title: 'Masuk diperlukan',
+    text: 'Anda harus masuk dengan akun Google sebelum mengubah data silsilah.',
+    confirmText: 'Masuk dengan Google',
+    icon: 'info',
+  })
   if (!ok) return null
   return signInWithGoogle()
 }
