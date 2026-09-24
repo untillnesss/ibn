@@ -186,6 +186,7 @@ const reject = (item) => resolve(item, 'rejected')
   color: #fff;
   padding: 24px;
   font-family: sans-serif;
+  box-sizing: border-box;
 }
 
 .login-panel {

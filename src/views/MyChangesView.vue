@@ -83,13 +83,11 @@ const FILTERS = [
       <RouterLink to="/" class="link">← Kembali ke silsilah</RouterLink>
     </div>
 
-    <template v-else>
+    <div v-else class="container">
       <div class="header">
-        <div>
-          <RouterLink to="/" class="link">← Silsilah</RouterLink>
-          <h1>Riwayat Perubahan Saya</h1>
-        </div>
+        <h1>Riwayat Perubahan Saya</h1>
         <div class="account">
+          <RouterLink to="/" class="link">← Silsilah</RouterLink>
           <span>{{ currentUser.email }}</span>
           <button type="button" class="btn" @click="signOutUser">Keluar</button>
         </div>
@@ -126,7 +124,7 @@ const FILTERS = [
           {{ formatDate(item.resolvedAt) }}
         </p>
       </div>
-    </template>
+    </div>
   </div>
 </template>
 
@@ -137,8 +135,7 @@ const FILTERS = [
   color: #fff;
   padding: 24px;
   font-family: sans-serif;
-  max-width: 760px;
-  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .center {
@@ -152,15 +149,10 @@ const FILTERS = [
 .header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: 12px;
   flex-wrap: wrap;
   margin-bottom: 16px;
-}
-
-.header h1 {
-  margin: 4px 0 0;
-  font-size: 22px;
 }
 
 .account {

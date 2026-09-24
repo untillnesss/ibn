@@ -8,6 +8,10 @@ body,
   height: 100%;
 }
 
+body {
+  background: #121212;
+}
+
 /* Dialog SweetAlert2 harus di atas form edit & modal crop foto (z-index 10000). */
 .swal2-container {
   z-index: 20000 !important;
