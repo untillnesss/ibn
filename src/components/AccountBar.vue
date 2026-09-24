@@ -1,12 +1,14 @@
 <script setup>
 import { currentUser, isAdmin, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser } from '@/services/authActions'
+import GoogleIcon from '@/components/GoogleIcon.vue'
 </script>
 
 <template>
   <div v-if="authReady" class="account-bar">
     <button v-if="!currentUser" type="button" class="btn-google" @click="signInWithGoogle">
-      Masuk dengan Google
+      <GoogleIcon :size="16" />
+      <span>Masuk dengan Google</span>
     </button>
 
     <template v-else>
@@ -63,11 +65,14 @@ import { signInWithGoogle, signOutUser } from '@/services/authActions'
 }
 
 .btn-google {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: #fff;
   color: #1f1f1f;
   border: none;
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 6px 14px 6px 10px;
   font-weight: bold;
   cursor: pointer;
 }

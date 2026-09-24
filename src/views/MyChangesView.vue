@@ -4,6 +4,7 @@ import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import { db } from '@/main'
 import { currentUser, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser } from '@/services/authActions'
+import GoogleIcon from '@/components/GoogleIcon.vue'
 import {
   STATUS_LABELS,
   describeChange,
@@ -75,7 +76,10 @@ const FILTERS = [
     <div v-else-if="!currentUser" class="center">
       <h1>Riwayat Perubahan</h1>
       <p class="muted">Masuk dengan akun Google untuk melihat perubahan yang pernah Anda usulkan.</p>
-      <button type="button" class="btn-google" @click="signInWithGoogle">Masuk dengan Google</button>
+      <button type="button" class="btn-google" @click="signInWithGoogle">
+        <GoogleIcon />
+        <span>Masuk dengan Google</span>
+      </button>
       <RouterLink to="/" class="link">← Kembali ke silsilah</RouterLink>
     </div>
 
@@ -193,6 +197,10 @@ const FILTERS = [
 }
 
 .btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   background: #fff;
   color: #1f1f1f;
   font-weight: bold;

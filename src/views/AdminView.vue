@@ -12,6 +12,7 @@ import {
 import { db } from '@/main'
 import { currentUser, isAdmin, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser } from '@/services/authActions'
+import GoogleIcon from '@/components/GoogleIcon.vue'
 import { applyChangePayload, fetchAllFamilies } from '@/services/familyDataService'
 import { describeChangeDetailed, formatDate, sortBySubmittedAt } from '@/services/changeSummary'
 
@@ -91,7 +92,10 @@ const reject = (item) => resolve(item, 'rejected')
 
     <div v-else-if="!currentUser" class="login-panel">
       <h1>Login Admin</h1>
-      <button type="button" class="btn-google" @click="login">Masuk dengan Google</button>
+      <button type="button" class="btn-google" @click="login">
+        <GoogleIcon />
+        <span>Masuk dengan Google</span>
+      </button>
       <RouterLink to="/" class="back-link">← Kembali ke silsilah</RouterLink>
     </div>
 
@@ -192,6 +196,10 @@ const reject = (item) => resolve(item, 'rejected')
 }
 
 .login-panel button.btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   background: #fff;
   color: #1f1f1f;
   font-weight: bold;
