@@ -1,7 +1,7 @@
 <script setup>
 import { currentUser, isAdmin, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser, ensureLoggedIn } from '@/services/authActions'
-import { showPending } from '@/services/viewState'
+import { showPending, editFormOpen } from '@/services/viewState'
 import GoogleIcon from '@/components/GoogleIcon.vue'
 
 async function togglePending() {
@@ -16,7 +16,7 @@ async function togglePending() {
 </script>
 
 <template>
-  <div v-if="authReady" class="account-panel">
+  <div v-if="authReady && !editFormOpen" class="account-panel">
     <div class="account-bar">
       <button v-if="!currentUser" type="button" class="btn-google" @click="signInWithGoogle">
         <GoogleIcon :size="16" />

@@ -19,7 +19,7 @@ import { applyChangePayload, fetchAllFamilies } from '@/services/familyDataServi
 import { currentUser, isAdmin } from '@/services/authState'
 import { ensureLoggedIn } from '@/services/authActions'
 import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/services/notify'
-import { showPending } from '@/services/viewState'
+import { showPending, editFormOpen } from '@/services/viewState'
 import { mergePendingIntoNodes, toDeltaPayload } from '@/services/pendingOverlay'
 
 const tableName = 'families'
@@ -50,13 +50,28 @@ onMounted(() => {
   })
 
   document.addEventListener('click', handleAvatarClick)
+
+  // Form edit dirender library langsung ke DOM; amati keberadaannya.
+  formObserver = new MutationObserver(() => {
+    editFormOpen.value = !!tree.value?.querySelector('[data-bft-edit-form]')
+
+    // Field Foto hanya boleh diisi lewat tombol "Unggah" (URL hasil upload), bukan diketik.
+    // readonly (bukan disabled) supaya nilainya tetap terbaca saat "Simpan".
+    const photoInput = tree.value?.querySelector('[data-bft-edit-form] input[data-binding="photo"]')
+    if (photoInput && !photoInput.readOnly) photoInput.readOnly = true
+  })
+  formObserver.observe(tree.value, { childList: true, subtree: true })
 })
 
 onUnmounted(() => {
   if (unsubscribe) unsubscribe()
   stopPendingSubscription()
+  formObserver?.disconnect()
+  editFormOpen.value = false
   document.removeEventListener('click', handleAvatarClick)
 })
+
+let formObserver = null
 
 // ── Mode "Tampilkan belum terverifikasi" ────────────────────────────
 // Semua user yang login melihat semua usulan pending (sesuai firestore.rules).
@@ -648,5 +663,50 @@ function getOptions() {
 <style>
 #bft-avatar img {
   cursor: zoom-in;
+}
+
+/* Tombol "Unggah" di field Foto. Bawaan library: link bergaris bawah yang menempel di
+   garis atas field (top:-1px; right:50px). Dijadikan tombol pil, sejajar tengah dengan isian. */
+.bft-edit-form [data-input-btn] {
+  top: 50% !important;
+  right: 10px !important;
+  transform: translateY(-50%);
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  height: auto !important;
+  line-height: 1 !important;
+  padding: 7px 14px 7px 11px;
+  border-radius: 999px;
+  background: #039be5;
+  color: #ffffff !important;
+  font-size: 12px;
+  font-weight: bold;
+  text-decoration: none !important;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.bft-edit-form [data-input-btn]::before {
+  content: '';
+  width: 14px;
+  height: 14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 16V4'/%3E%3Cpath d='M7 9l5-5 5 5'/%3E%3Cpath d='M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3'/%3E%3C/svg%3E")
+    center / contain no-repeat;
+}
+
+.bft-edit-form [data-input-btn]:hover {
+  background: #0288d1;
+}
+
+/* Beri ruang di kanan isian supaya URL foto yang panjang tidak tertutup tombol. */
+.bft-edit-form .bft-input:has([data-input-btn]) input {
+  padding-right: 110px !important;
+}
+
+/* Field Foto readonly: tampilkan sebagai teks redup, tanpa kursor ketik. */
+.bft-edit-form input[readonly] {
+  color: #9e9e9e !important;
+  cursor: default;
 }
 </style>
