@@ -2,9 +2,9 @@ import Swal from 'sweetalert2'
 
 // Satu tempat untuk gaya dialog seluruh aplikasi (pengganti alert()/confirm() bawaan).
 const base = Swal.mixin({
-  theme: 'dark',
+  theme: 'light',
   confirmButtonColor: '#039be5',
-  cancelButtonColor: '#444',
+  cancelButtonColor: '#9e9e9e',
   confirmButtonText: 'OK',
   cancelButtonText: 'Batal',
   reverseButtons: true,
