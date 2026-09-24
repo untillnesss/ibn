@@ -15,7 +15,8 @@ import { signInWithGoogle, signOutUser } from '@/services/authActions'
 import GoogleIcon from '@/components/GoogleIcon.vue'
 import { notifyError } from '@/services/notify'
 import { applyChangePayload, fetchAllFamilies } from '@/services/familyDataService'
-import { describeChangeDetailed, formatDate, sortBySubmittedAt } from '@/services/changeSummary'
+import { formatDate, sortBySubmittedAt } from '@/services/changeSummary'
+import ChangeDetails from '@/components/ChangeDetails.vue'
 
 // Snapshot data live, sebagai nilai "sebelum" pada diff.
 const liveById = ref({})
@@ -24,8 +25,6 @@ async function refreshLiveData() {
   const nodes = await fetchAllFamilies()
   liveById.value = Object.fromEntries(nodes.map((n) => [n.id, n]))
 }
-
-const TYPE_LABELS = { add: 'Baru', update: 'Diubah', remove: 'Dihapus' }
 
 const login = signInWithGoogle
 const logout = signOutUser
@@ -130,31 +129,7 @@ const reject = (item) => resolve(item, 'rejected')
           <span class="date">{{ formatDate(item.submittedAt) }}</span>
         </div>
 
-        <div
-          v-for="(block, i) in describeChangeDetailed(item, liveById)"
-          :key="i"
-          class="change"
-          :class="block.type"
-        >
-          <p class="heading">
-            <span class="tag" :class="block.type">{{ TYPE_LABELS[block.type] }}</span>
-            {{ block.heading }}
-          </p>
-          <p v-for="(relation, r) in block.relations" :key="`r${r}`" class="relation">
-            {{ relation }}
-          </p>
-
-          <table v-if="block.rows.length" class="diff">
-            <tbody>
-              <tr v-for="(row, j) in block.rows" :key="j">
-                <td class="label">{{ row.label }}</td>
-                <td v-if="block.type === 'update'" class="before">{{ row.before }}</td>
-                <td v-if="block.type === 'update'" class="arrow">→</td>
-                <td class="after">{{ row.after }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <ChangeDetails :item="item" :live-by-id="liveById" />
 
         <div class="actions">
           <button
@@ -241,87 +216,6 @@ const reject = (item) => resolve(item, 'rejected')
   font-size: 13px;
 }
 
-.change {
-  border-left: 3px solid #444;
-  padding-left: 10px;
-}
-
-.change.add {
-  border-left-color: #2e9e57;
-}
-
-.change.update {
-  border-left-color: #d9a520;
-}
-
-.change.remove {
-  border-left-color: #d9534f;
-}
-
-.tag {
-  display: inline-block;
-  font-size: 11px;
-  font-weight: bold;
-  padding: 1px 8px;
-  border-radius: 999px;
-  margin-right: 6px;
-  vertical-align: middle;
-}
-
-.tag.add {
-  background: #0d4020;
-  color: #5ee08a;
-}
-
-.tag.update {
-  background: #5c4400;
-  color: #ffcc4d;
-}
-
-.tag.remove {
-  background: #4d1414;
-  color: #ff7a7a;
-}
-
-.relation {
-  margin: 0 0 4px;
-  color: #8ab4f8;
-  font-size: 13px;
-}
-
-.diff {
-  border-collapse: collapse;
-  font-size: 14px;
-  margin-top: 4px;
-}
-
-.diff td {
-  padding: 2px 8px 2px 0;
-  vertical-align: top;
-}
-
-.diff .label {
-  color: #aeaeae;
-  white-space: nowrap;
-}
-
-.diff .before {
-  color: #ff7a7a;
-  text-decoration: line-through;
-}
-
-.diff .arrow {
-  color: #777;
-}
-
-.diff .after {
-  color: #e6e6e6;
-}
-
-.change.update .diff .after {
-  color: #5ee08a;
-}
-
 .back-link {
   color: #039be5;
   font-size: 13px;
@@ -352,20 +246,6 @@ const reject = (item) => resolve(item, 'rejected')
   margin-bottom: 8px;
 }
 
-.change {
-  margin-bottom: 8px;
-}
-
-.heading {
-  font-weight: bold;
-  margin: 0 0 4px;
-}
-
-.detail {
-  margin: 0;
-  color: #ccc;
-  font-size: 14px;
-}
 
 .actions {
   display: flex;

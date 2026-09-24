@@ -1,20 +1,30 @@
 <script setup>
 import { ref, computed, watch, onUnmounted } from 'vue'
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import {
+  collection,
+  query,
+  where,
+  onSnapshot,
+  doc,
+  updateDoc,
+  serverTimestamp,
+} from 'firebase/firestore'
 import { db } from '@/main'
 import { currentUser, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser } from '@/services/authActions'
 import GoogleIcon from '@/components/GoogleIcon.vue'
-import { notifyError } from '@/services/notify'
-import {
-  STATUS_LABELS,
-  describeChange,
-  formatDate,
-  sortBySubmittedAt,
-  useRemovedNames,
-} from '@/services/changeSummary'
+import { confirmDialog, notifyError, notifySuccess } from '@/services/notify'
+import { STATUS_LABELS, formatDate, sortBySubmittedAt } from '@/services/changeSummary'
+import { fetchAllFamilies } from '@/services/familyDataService'
+import ChangeDetails from '@/components/ChangeDetails.vue'
 
-const { removedNames, resolveRemovedNames } = useRemovedNames()
+// Data live: dipakai untuk nama relasi & nilai "sebelum" pengajuan lama yang belum punya snapshot.
+const liveById = ref({})
+
+async function refreshLiveData() {
+  const nodes = await fetchAllFamilies()
+  liveById.value = Object.fromEntries(nodes.map((n) => [n.id, n]))
+}
 
 const items = ref([])
 const filter = ref('all')
@@ -38,7 +48,7 @@ watch(
       (snapshot) => {
         const docs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
         items.value = sortBySubmittedAt(docs, 'desc')
-        resolveRemovedNames(items.value)
+        refreshLiveData()
       },
       (err) => {
         console.error(err)
@@ -53,8 +63,40 @@ onUnmounted(() => {
   if (unsubscribe) unsubscribe()
 })
 
+const cancellingIds = ref(new Set())
+
+async function cancelSubmission(item) {
+  const ok = await confirmDialog({
+    title: 'Batalkan pengajuan?',
+    text: 'Pengajuan ini akan ditarik dan tidak akan diproses oleh admin.',
+    confirmText: 'Ya, batalkan',
+    icon: 'warning',
+  })
+  if (!ok) return
+
+  cancellingIds.value = new Set(cancellingIds.value).add(item.id)
+  try {
+    // Rules hanya mengizinkan pemilik mengubah status pending -> cancelled (+ resolvedAt).
+    await updateDoc(doc(db, 'pending_changes', item.id), {
+      status: 'cancelled',
+      resolvedAt: serverTimestamp(),
+    })
+    notifySuccess('Dibatalkan', 'Pengajuan Anda telah dibatalkan.')
+  } catch (err) {
+    console.error(err)
+    // Paling mungkin: admin sudah memproses pengajuan ini lebih dulu.
+    notifyError('Gagal membatalkan', 'Pengajuan mungkin sudah diproses admin. Silakan muat ulang.')
+  } finally {
+    const next = new Set(cancellingIds.value)
+    next.delete(item.id)
+    cancellingIds.value = next
+  }
+}
+
+const RESOLVED_LABELS = { approved: 'Disetujui', rejected: 'Ditolak', cancelled: 'Dibatalkan' }
+
 const counts = computed(() => {
-  const result = { all: items.value.length, pending: 0, approved: 0, rejected: 0 }
+  const result = { all: items.value.length, pending: 0, approved: 0, rejected: 0, cancelled: 0 }
   for (const item of items.value) result[item.status] = (result[item.status] ?? 0) + 1
   return result
 })
@@ -68,6 +110,7 @@ const FILTERS = [
   { value: 'pending', label: STATUS_LABELS.pending },
   { value: 'approved', label: STATUS_LABELS.approved },
   { value: 'rejected', label: STATUS_LABELS.rejected },
+  { value: 'cancelled', label: STATUS_LABELS.cancelled },
 ]
 </script>
 
@@ -118,15 +161,23 @@ const FILTERS = [
           <span class="badge" :class="item.status">{{ STATUS_LABELS[item.status] ?? item.status }}</span>
         </div>
 
-        <div v-for="(change, i) in describeChange(item, removedNames)" :key="i" class="change">
-          <p class="heading">{{ change.heading }}</p>
-          <p v-for="(line, j) in change.details" :key="j" class="detail">{{ line }}</p>
-        </div>
+        <ChangeDetails :item="item" :live-by-id="liveById" />
 
         <p v-if="item.resolvedAt" class="muted small">
-          {{ item.status === 'approved' ? 'Disetujui' : 'Ditolak' }} pada
+          {{ RESOLVED_LABELS[item.status] ?? 'Diproses' }} pada
           {{ formatDate(item.resolvedAt) }}
         </p>
+
+        <div v-if="item.status === 'pending'" class="actions">
+          <button
+            type="button"
+            class="btn-cancel"
+            :disabled="cancellingIds.has(item.id)"
+            @click="cancelSubmission(item)"
+          >
+            {{ cancellingIds.has(item.id) ? 'Membatalkan...' : 'Batalkan Pengajuan' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -258,23 +309,40 @@ const FILTERS = [
   color: #5ee08a;
 }
 
+.badge.cancelled {
+  background: #333;
+  color: #aeaeae;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.btn-cancel {
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #d9534f;
+  background: transparent;
+  color: #ff7a7a;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+}
+
+.btn-cancel:hover:not(:disabled) {
+  background: #4d1414;
+}
+
+.btn-cancel:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
 .badge.rejected {
   background: #4d1414;
   color: #ff7a7a;
 }
 
-.change {
-  margin-bottom: 8px;
-}
-
-.heading {
-  font-weight: bold;
-  margin: 0 0 4px;
-}
-
-.detail {
-  margin: 0;
-  color: #ccc;
-  font-size: 14px;
-}
 </style>

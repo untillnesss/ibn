@@ -71,6 +71,23 @@ export function toDeltaPayload(payload, liveNodes) {
   return { ...payload, updateNodesData }
 }
 
+// Salinan data live SEBELUM perubahan untuk node yang diubah/dihapus, disimpan bersama usulan.
+// Dengan ini riwayat tetap bisa menampilkan "sebelum → sesudah" setelah usulan disetujui
+// (saat itu data live sudah sama dengan usulannya).
+export function snapshotBefore(payload, liveNodes) {
+  const liveById = new Map(liveNodes.map((n) => [n.id, n]))
+  const ids = [
+    ...(payload.updateNodesData ?? []).map((n) => n.id),
+    ...(payload.removeNodeId != null ? [payload.removeNodeId] : []),
+  ]
+  const before = {}
+  for (const id of ids) {
+    const live = liveById.get(id)
+    if (live) before[id] = JSON.parse(JSON.stringify(live))
+  }
+  return before
+}
+
 function diffFromLive(live, proposed) {
   const delta = {}
   for (const [key, value] of Object.entries(proposed)) {

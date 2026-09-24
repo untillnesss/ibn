@@ -1,6 +1,3 @@
-import { ref } from 'vue'
-import { findNodeById } from '@/services/familyDataService'
-
 const GENDER_LABELS = { male: 'Pria', female: 'Wanita' }
 const FIELD_LABELS = {
   anak: 'Anak Ke-',
@@ -18,20 +15,10 @@ export const STATUS_LABELS = {
   pending: 'Menunggu',
   approved: 'Disetujui',
   rejected: 'Ditolak',
+  cancelled: 'Dibatalkan',
 }
 
-function fieldLines(node) {
-  return Object.entries(FIELD_LABELS)
-    .filter(([key]) => node[key] != null && node[key] !== '')
-    .map(([key, label]) => {
-      const value = key === 'gender' ? (GENDER_LABELS[node[key]] ?? node[key]) : node[key]
-      return `${label}: ${value}`
-    })
-}
-
-// ── Diff terperinci untuk halaman admin ──────────────────────────────
-// Nilai "sebelum" diambil dari data live (koleksi families). Hanya akurat untuk item
-// yang masih pending, karena data live belum tersentuh.
+// ── Diff terperinci (halaman admin & riwayat) ────────────────────────
 
 function isEmpty(value) {
   return value == null || value === ''
@@ -56,12 +43,19 @@ function joinNames(names) {
   return `${valid.slice(0, -1).join(', ')} & ${valid.at(-1)}`
 }
 
+// Nilai "sebelum": snapshot `item.before` (disimpan saat dikirim) bila ada, kalau tidak dari
+// data live. Untuk pengajuan lama yang sudah diproses dan tanpa snapshot, "sebelum" tidak
+// diketahui (data live sudah berubah), jadi yang ditampilkan hanya nilai usulan.
 export function describeChangeDetailed(item, liveById = {}) {
   const payload = item.payload ?? {}
+  const snapshot = item.before ?? {}
   const addNodes = payload.addNodesData ?? []
   const newById = Object.fromEntries(addNodes.map((n) => [n.id, n]))
   const nameOf = (id) =>
-    liveById[id]?.name || newById[id]?.name || (newById[id] ? '(anggota baru)' : null)
+    snapshot[id]?.name ||
+    liveById[id]?.name ||
+    newById[id]?.name ||
+    (newById[id] ? '(anggota baru)' : null)
 
   const blocks = []
 
@@ -92,19 +86,26 @@ export function describeChangeDetailed(item, liveById = {}) {
   }
 
   for (const node of payload.updateNodesData ?? []) {
-    const live = liveById[node.id] ?? {}
-    const rows = Object.entries(FIELD_LABELS)
-      .filter(([key]) => key in node && (node[key] ?? '') !== (live[key] ?? ''))
-      .map(([key, label]) => ({
-        label,
-        before: formatFieldValue(key, live[key]),
-        after: formatFieldValue(key, node[key]),
-      }))
+    const hasSnapshot = node.id in snapshot
+    const beforeKnown = hasSnapshot || item.status === 'pending' || item.status == null
+    const base = snapshot[node.id] ?? liveById[node.id] ?? {}
+
+    const rows = beforeKnown
+      ? Object.entries(FIELD_LABELS)
+          .filter(([key]) => key in node && (node[key] ?? '') !== (base[key] ?? ''))
+          .map(([key, label]) => ({
+            label,
+            before: formatFieldValue(key, base[key]),
+            after: formatFieldValue(key, node[key]),
+          }))
+      : Object.entries(FIELD_LABELS)
+          .filter(([key]) => key in node && !isEmpty(node[key]))
+          .map(([key, label]) => ({ label, after: formatFieldValue(key, node[key]) }))
 
     // Update yang cuma mengubah relasi (pids/fid/mid) sudah dijelaskan di kartu anggota baru.
     if (rows.length === 0) continue
 
-    blocks.push({ type: 'update', heading: live.name || node.name || node.id, rows })
+    blocks.push({ type: 'update', heading: base.name || node.name || node.id, rows })
   }
 
   if (payload.removeNodeId != null) {
@@ -116,42 +117,6 @@ export function describeChangeDetailed(item, liveById = {}) {
   }
 
   return blocks
-}
-
-export function describeChange(item, removedNames = {}) {
-  const lines = []
-
-  for (const node of item.payload?.addNodesData ?? []) {
-    lines.push({ heading: 'Tambah anggota baru', details: fieldLines(node) })
-  }
-
-  for (const node of item.payload?.updateNodesData ?? []) {
-    lines.push({ heading: 'Ubah data', details: fieldLines(node) })
-  }
-
-  const removeNodeId = item.payload?.removeNodeId
-  if (removeNodeId != null) {
-    const name = item.removeNodeName ?? removedNames[removeNodeId] ?? removeNodeId
-    lines.push({ heading: 'Hapus anggota', details: [name] })
-  }
-
-  return lines
-}
-
-// Untuk dokumen lama yang belum menyimpan removeNodeName saat dikirim.
-export function useRemovedNames() {
-  const removedNames = ref({})
-
-  async function resolveRemovedNames(items) {
-    for (const item of items) {
-      const removeNodeId = item.payload?.removeNodeId
-      if (removeNodeId == null || item.removeNodeName || removedNames.value[removeNodeId]) continue
-      const node = await findNodeById(removeNodeId)
-      removedNames.value = { ...removedNames.value, [removeNodeId]: node?.name ?? removeNodeId }
-    }
-  }
-
-  return { removedNames, resolveRemovedNames }
 }
 
 export function sortBySubmittedAt(items, direction = 'asc') {

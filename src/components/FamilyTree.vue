@@ -20,7 +20,7 @@ import { currentUser, isAdmin } from '@/services/authState'
 import { ensureLoggedIn } from '@/services/authActions'
 import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/services/notify'
 import { showPending, editFormOpen } from '@/services/viewState'
-import { mergePendingIntoNodes, toDeltaPayload } from '@/services/pendingOverlay'
+import { mergePendingIntoNodes, toDeltaPayload, snapshotBefore } from '@/services/pendingOverlay'
 
 const tableName = 'families'
 
@@ -547,6 +547,7 @@ async function submitChange(payload) {
 
     await addDoc(collection(db, 'pending_changes'), {
       payload: deltaPayload,
+      before: snapshotBefore(deltaPayload, live),
       removeNodeName,
       submittedBy: user.displayName ?? user.email,
       submitterEmail: user.email,
