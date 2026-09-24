@@ -1,21 +1,26 @@
 <script setup>
-import { ref, onMounted, useTemplateRef, onUnmounted } from 'vue'
+import { ref, onMounted, useTemplateRef, onUnmounted, watch } from 'vue'
 import FamilyTree from '@balkangraph/familytree.js'
-import { collection, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore'
+import {
+  collection,
+  onSnapshot,
+  addDoc,
+  serverTimestamp,
+  query,
+  where,
+} from 'firebase/firestore'
 import { db } from '@/main'
 import maleAvatar from '@/assets/avatars/male-avatar.svg'
 import femaleAvatar from '@/assets/avatars/female-avatar.svg'
 import { openPhotoCropModal } from '@/services/photoCropLauncher'
 import { uploadPhoto } from '@/services/uploadService'
 import { openImageLightbox } from '@/services/imageLightbox'
-import {
-  applyChangePayload,
-  fetchAllFamilies,
-  findNodeById,
-} from '@/services/familyDataService'
+import { applyChangePayload, fetchAllFamilies } from '@/services/familyDataService'
 import { currentUser, isAdmin } from '@/services/authState'
 import { ensureLoggedIn } from '@/services/authActions'
 import { notifyError, notifyInfo, notifySuccess, notifyWarning } from '@/services/notify'
+import { showPending } from '@/services/viewState'
+import { mergePendingIntoNodes, toDeltaPayload } from '@/services/pendingOverlay'
 
 const tableName = 'families'
 
@@ -49,8 +54,57 @@ onMounted(() => {
 
 onUnmounted(() => {
   if (unsubscribe) unsubscribe()
+  stopPendingSubscription()
   document.removeEventListener('click', handleAvatarClick)
 })
+
+// ── Mode "Tampilkan belum terverifikasi" ────────────────────────────
+// Semua user yang login melihat semua usulan pending (sesuai firestore.rules).
+// Penggabungan hanya di memori, tidak ditulis ke Firestore.
+let unsubscribePending = null
+let pendingViewActive = false
+
+function stopPendingSubscription() {
+  if (unsubscribePending) {
+    unsubscribePending()
+    unsubscribePending = null
+  }
+}
+
+function syncPendingView() {
+  stopPendingSubscription()
+  if (!familyTree) return // tree belum siap; dipanggil lagi di akhir myTree()
+
+  if (!showPending.value || !currentUser.value) {
+    if (!currentUser.value) showPending.value = false
+    if (pendingViewActive) {
+      pendingViewActive = false
+      revertToLiveData()
+    }
+    return
+  }
+
+  pendingViewActive = true
+  const q = query(collection(db, 'pending_changes'), where('status', '==', 'pending'))
+
+  unsubscribePending = onSnapshot(
+    q,
+    async (snapshot) => {
+      const items = snapshot.docs.map((d) => d.data())
+      const live = await fetchAllFamilies()
+      if (!showPending.value) return // toggle dimatikan saat menunggu data
+      familyTreeNodes.value = live
+      renderNodes(mergePendingIntoNodes(live, items))
+    },
+    (err) => {
+      console.error(err)
+      notifyError('Gagal memuat data', 'Perubahan yang belum terverifikasi tidak dapat dimuat.')
+      showPending.value = false
+    },
+  )
+}
+
+watch([showPending, currentUser], syncPendingView)
 
 function myTree(domEl, x) {
   FamilyTree.templates.father.node = FamilyTree.templates.father.node.replace('Add father', 'Tambah Ayah')
@@ -92,11 +146,6 @@ function myTree(domEl, x) {
           <circle cx="11" cy="11" r="2" fill="#888888"></circle>
           <circle cx="17" cy="11" r="2" fill="#888888"></circle>
         </g>
-        <g id="sriniz_expand_icon" style="cursor:pointer;">
-          <circle cx="11" cy="11" r="14" fill="#ffffff"></circle>
-          <line x1="5" y1="11" x2="17" y2="11" stroke-width="2" stroke="#888888"></line>
-          <line x1="11" y1="5" x2="11" y2="17" stroke-width="2" stroke="#888888"></line>
-        </g>
         <g id="sriniz_male_up">
           <circle cx="15" cy="15" r="10" fill="#fff" stroke="#fff" stroke-width="1"></circle>
           ${FamilyTree.icon.ft(15, 15, '#039BE5', 7.5, 7.5)}
@@ -113,6 +162,12 @@ function myTree(domEl, x) {
     '<text style="font-size: 12px; font-weight: bold;" fill="#ffffff" x="100" y="50">{val}</text>'
   const field2Template =
     '<text data-width="150" style="font-size: 11px;" fill="#ffffff" x="100" y="68">{val}</text>'
+  // Penanda "Belum Terverifikasi": hanya dirender kalau node punya unverifiedLabel
+  // (diisi oleh pendingOverlay saat toggle aktif). Garis putus-putus kuning + label.
+  const unverifiedTemplate =
+    '<rect x="2" y="2" width="336" height="86" rx="14" ry="14" fill="none" stroke="#ffcc4d" stroke-width="3" stroke-dasharray="8 5"></rect>' +
+    '<rect x="100" y="73" width="170" height="14" rx="7" ry="7" fill="#ffcc4d"></rect>' +
+    '<text x="185" y="83.5" text-anchor="middle" style="font-size: 8.5px; font-weight: bold;" fill="#5c4400">{val}</text>'
 
   // Male
   FamilyTree.templates.sriniz_male = Object.assign({}, FamilyTree.templates.sriniz)
@@ -122,6 +177,7 @@ function myTree(domEl, x) {
   FamilyTree.templates.sriniz_male.field_0 = field0Template
   FamilyTree.templates.sriniz_male.field_1 = field1Template
   FamilyTree.templates.sriniz_male.field_2 = field2Template
+  FamilyTree.templates.sriniz_male.field_4 = unverifiedTemplate
 
   // Female
   FamilyTree.templates.sriniz_female = Object.assign({}, FamilyTree.templates.sriniz)
@@ -131,8 +187,18 @@ function myTree(domEl, x) {
   FamilyTree.templates.sriniz_female.field_0 = field0Template
   FamilyTree.templates.sriniz_female.field_1 = field1Template
   FamilyTree.templates.sriniz_female.field_2 = field2Template
+  FamilyTree.templates.sriniz_female.field_4 = unverifiedTemplate
 
-  const expandIcon = '<use x="270" y="13" xlink:href="#sriniz_expand_icon"><title>Expand</title></use>'
+  // Tombol buka cabang (muncul hanya pada kartu yang keturunannya sedang disembunyikan).
+  // Library menggambarnya di grup terpisah yang titik nol-nya = TENGAH BAWAH kartu,
+  // jadi translate(-68, 10) = pil selebar 136px terpusat, 10px di bawah kartu.
+  const expandIcon =
+    '<g transform="translate(-68, 10)" style="cursor:pointer;">' +
+    '<title>Lihat Keturunan</title>' +
+    '<rect x="0" y="0" width="136" height="26" rx="13" ry="13" fill="#ffffff" stroke="#aeaeae" stroke-width="1"></rect>' +
+    '<path d="M14 10 l5 5 l5 -5" fill="none" stroke="#039BE5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"></path>' +
+    '<text x="79" y="17.5" text-anchor="middle" style="font-size: 12px; font-weight: bold;" fill="#333333">Lihat Keturunan</text>' +
+    '</g>'
 
   FamilyTree.templates.sriniz_male.plus = expandIcon
   FamilyTree.templates.sriniz_female.plus = expandIcon
@@ -195,6 +261,7 @@ function myTree(domEl, x) {
       field_1: 'born',
       field_2: 'city',
       field_3: 'anak',
+      field_4: 'unverifiedLabel',
       img_0: 'photo',
     },
     editForm: {
@@ -322,6 +389,8 @@ function myTree(domEl, x) {
   })
 
   requireLoginBeforeEditing(familyTree)
+  familyTree.on('redraw', centerExpandButtonsBetweenPartners)
+  if (showPending.value) syncPendingView()
 
   // Validasi sebelum form anggota BARU (draft) boleh disimpan.
   familyTree.editUI.on('save', function (sender, args) {
@@ -445,13 +514,24 @@ async function submitChange(payload) {
   }
 
   try {
+    const live = await fetchAllFamilies()
+    const deltaPayload = toDeltaPayload(payload, live)
     const removeNodeName =
       payload.removeNodeId != null
-        ? ((await findNodeById(payload.removeNodeId))?.name ?? null)
+        ? (live.find((n) => n.id === payload.removeNodeId)?.name ?? null)
         : null
 
+    const isEmpty =
+      !deltaPayload.addNodesData.length &&
+      !deltaPayload.updateNodesData.length &&
+      deltaPayload.removeNodeId == null
+    if (isEmpty) {
+      notifyInfo('Tidak ada perubahan', 'Data yang disimpan sama dengan data saat ini.')
+      return
+    }
+
     await addDoc(collection(db, 'pending_changes'), {
-      payload,
+      payload: deltaPayload,
       removeNodeName,
       submittedBy: user.displayName ?? user.email,
       submitterEmail: user.email,
@@ -471,11 +551,42 @@ async function submitChange(payload) {
   }
 }
 
+// Library menaruh tombol "Lihat Keturunan" di tengah bawah kartu yang ditutup. Padahal anak-anak
+// milik PASANGAN, dan garis keturunan turun dari titik tengah di antara kedua kartu (ikon hati).
+// Setelah setiap render, geser tombol ke titik tengah itu.
+function centerExpandButtonsBetweenPartners() {
+  for (const group of familyTree.element.querySelectorAll('g[data-ctrl-ec-id]')) {
+    const node = familyTree.getNode(group.getAttribute('data-ctrl-ec-id'))
+    if (!node) continue
+
+    const partner = familyTree.getNode(findCoParentId(node))
+    if (!partner || partner.y !== node.y) continue // tanpa pasangan / beda baris: biarkan
+
+    const midX = (node.x + node.w / 2 + partner.x + partner.w / 2) / 2
+    group.setAttribute('transform', `matrix(1,0,0,1,${midX},${node.y + node.h})`)
+  }
+}
+
+// Pasangan yang benar-benar menjadi orang tua kedua dari anak-anak node ini
+// (penting kalau seseorang punya lebih dari satu pasangan).
+function findCoParentId(node) {
+  for (const childId of node.ftChildrenIds ?? []) {
+    const child = familyTree.get(childId)
+    const other = child?.fid === node.id ? child.mid : child?.mid === node.id ? child.fid : null
+    if (other) return other
+  }
+  return Object.values(node.pids ?? {})[0]
+}
+
 async function revertToLiveData() {
   familyTreeNodes.value = await fetchAllFamilies()
+  renderNodes(familyTreeNodes.value)
+}
+
+function renderNodes(nodes) {
   // Jangan pakai familyTree.load(): itu menggambar dengan action.init yang mereset kamera
   // ke posisi awal. action.update menggambar ulang dengan viewBox (posisi & zoom) saat ini.
-  familyTree.config.nodes = familyTreeNodes.value
+  familyTree.config.nodes = nodes
   familyTree.draw(FamilyTree.action.update)
 }
 
@@ -484,7 +595,9 @@ async function revertToLiveData() {
 function requireLoginBeforeEditing(tree) {
   const originalShow = tree.editUI.show.bind(tree.editUI)
   tree.editUI.show = function (id, detailsMode, ...rest) {
-    if (detailsMode || currentUser.value) return originalShow(id, detailsMode, ...rest)
+    if (detailsMode) return originalShow(id, detailsMode, ...rest)
+    if (blockedByPendingPreview()) return false
+    if (currentUser.value) return originalShow(id, detailsMode, ...rest)
     ensureLoggedIn().then((user) => {
       if (user) originalShow(id, detailsMode, ...rest)
     })
@@ -493,11 +606,23 @@ function requireLoginBeforeEditing(tree) {
 
   const originalShowTreeMenu = tree.showTreeMenu.bind(tree)
   tree.showTreeMenu = function (id) {
+    if (blockedByPendingPreview()) return
     if (currentUser.value) return originalShowTreeMenu(id)
     ensureLoggedIn().then((user) => {
       if (user) originalShowTreeMenu(id)
     })
   }
+}
+
+// Saat data pending ikut ditampilkan, tree berisi campuran data live + usulan.
+// Mengedit di kondisi ini akan mengirim usulan orang lain sebagai data asli, jadi dikunci.
+function blockedByPendingPreview() {
+  if (!showPending.value) return false
+  notifyInfo(
+    'Mode pratinjau aktif',
+    'Matikan "Tampilkan belum terverifikasi" terlebih dahulu untuk mengubah data.',
+  )
+  return true
 }
 
 function getOptions() {

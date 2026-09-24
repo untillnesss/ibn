@@ -5,6 +5,7 @@ import { db } from '@/main'
 import { currentUser, authReady } from '@/services/authState'
 import { signInWithGoogle, signOutUser } from '@/services/authActions'
 import GoogleIcon from '@/components/GoogleIcon.vue'
+import { notifyError } from '@/services/notify'
 import {
   STATUS_LABELS,
   describeChange,
@@ -39,7 +40,10 @@ watch(
         items.value = sortBySubmittedAt(docs, 'desc')
         resolveRemovedNames(items.value)
       },
-      (err) => console.error(err),
+      (err) => {
+        console.error(err)
+        notifyError('Gagal memuat riwayat', 'Riwayat perubahan Anda tidak dapat dimuat.')
+      },
     )
   },
   { immediate: true },

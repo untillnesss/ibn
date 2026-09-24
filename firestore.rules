@@ -21,9 +21,9 @@ service cloud.firestore {
         && request.resource.data.submitterUid == request.auth.uid
         && request.resource.data.status == 'pending';
 
-      // Admin melihat semua; user biasa hanya riwayat miliknya sendiri.
-      allow read: if isAdmin()
-        || (request.auth != null && resource.data.submitterUid == request.auth.uid);
+      // Semua user yang sudah login boleh melihat usulan (toggle "Tampilkan belum terverifikasi"
+      // & halaman riwayat). Pengunjung yang belum login tidak bisa membaca sama sekali.
+      allow read: if request.auth != null;
 
       allow update, delete: if isAdmin();
     }
